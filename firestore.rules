@@ -1,0 +1,463 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // This security rules file assumes the following data structures:
+    //
+    // Collection: admins
+    // Document ID: {adminId} (matches Firebase Auth UID)
+    // Fields:
+    //   - active: bool (optional, defaults to true if omitted; false disables admin)
+    //   - email: string (optional)
+    //   - role: string (optional)
+    //
+    // Collection: products
+    // Document ID: {productId} (slug or auto-generated ID)
+    // Fields:
+    //   - name: string (required, 1..200 chars)
+    //   - slug: string (required, 1..200 chars)
+    //   - sku: string (optional, 0..100 chars)
+    //   - price: number (required, >= 0)
+    //   - compareAtPrice: number | null (optional, >= 0 if number)
+    //   - category: string (optional, 0..100 chars)
+    //   - collection: string (optional, 0..100 chars)
+    //   - material: string (optional, 0..200 chars)
+    //   - fit: string (optional, 0..100 chars)
+    //   - sizes: list (optional, <= 30 items)
+    //   - description: string (optional, 0..10000 chars)
+    //   - stock: map | number (required)
+    //   - images: map (optional)
+    //   - thumbnail: string (optional, 0..1000 chars)
+    //   - active: bool (required)
+    //   - featured: bool (optional)
+    //   - bestseller: bool (optional)
+    //   - newArrival: bool (optional)
+    //   - createdAt: timestamp (optional on merge, immutable if present)
+    //   - updatedAt: timestamp (required)
+    //
+    // Collection: categories, collections
+    // Document ID: {docId}
+    // Fields:
+    //   - name: string (required, 1..120 chars)
+    //   - slug: string (optional, 0..120 chars)
+    //   - description: string (optional, 0..1000 chars)
+    //   - image: string (optional, 0..1000 chars)
+    //   - active: bool (optional)
+    //   - order: number (optional)
+    //   - createdAt: timestamp (optional)
+    //   - updatedAt: timestamp (optional)
+    //
+    // Collection: settings
+    // Document ID: storefront (and any admin-only setting docs)
+    // Fields (storefront):
+    //   - announcement: string (optional, 0..500 chars)
+    //   - freeShippingThreshold: number (required, >= 0)
+    //   - standardShippingFee: number (required, >= 0)
+    //   - supportEmail: string (optional, 0..254 chars)
+    //   - supportPhone: string (optional, 0..50 chars)
+    //   - updatedAt: timestamp (required)
+    //
+    // Collection: users
+    // Document ID: {userId} (matches Firebase Auth UID)
+    // Fields:
+    //   - name: string (optional, 0..120 chars)
+    //   - email: string (required, valid email, <= 254 chars)
+    //   - phone: string (optional, 0..30 chars)
+    //   - shippingAddress: map (optional)
+    //   - createdAt: timestamp (optional, immutable once set)
+    //   - updatedAt: timestamp (required)
+    //
+    // Subcollection: users/{userId}/wishlist
+    // Document ID: {productId}
+    // Fields:
+    //   - productId: string (required, matches doc ID, 1..150 chars)
+    //   - createdAt: timestamp (required)
+    //
+    // Collection: orders
+    // Document ID: {orderId} (e.g. AE-123456, created by backend Admin SDK)
+    // Fields:
+    //   - orderId: string (immutable)
+    //   - userId: string | null (immutable)
+    //   - customer: map (immutable)
+    //   - shippingAddress: map (immutable)
+    //   - items: list (immutable)
+    //   - subtotal, discount, shipping, total: number (immutable)
+    //   - couponCode: string | null (immutable)
+    //   - paymentStatus: string (immutable via client; set by backend Admin SDK)
+    //   - orderStatus: string (updatable by admin)
+    //   - paymentId, razorpayOrderId: string (immutable)
+    //   - trackingNumber: string (updatable by admin, <= 100 chars)
+    //   - notes: string (updatable by admin, <= 1000 chars)
+    //   - createdAt: timestamp (immutable)
+    //   - updatedAt: timestamp (updatable by admin)
+    //
+    // Collection: coupons
+    // Document ID: {couponId} (uppercase coupon code)
+    // Fields:
+    //   - code: string (required, 1..50 chars)
+    //   - discountType: string (required, 'percentage' | 'fixed')
+    //   - discountValue: number (required, > 0)
+    //   - minimumOrderValue: number (optional, >= 0)
+    //   - maximumDiscount: number | null (optional, >= 0 if number)
+    //   - usageLimit: number | null (optional, >= 0 if number)
+    //   - expiryDate: string | null (optional, <= 50 chars)
+    //   - usedCount: number (optional, >= 0)
+    //   - active: bool (required)
+    //   - createdAt: timestamp (optional)
+    //
+    // Collection: reviews
+    // Document ID: {reviewId}
+    // Fields:
+    //   - productId: string (required, 1..150 chars)
+    //   - userId: string (required, matches auth.uid on create, immutable)
+    //   - customerName: string (required, 1..120 chars)
+    //   - rating: number (required, 1..5)
+    //   - title: string (required, 1..200 chars)
+    //   - comment: string (required, 1..2000 chars)
+    //   - verified: bool (required)
+    //   - approved: bool (required, must be false on client create)
+    //   - createdAt: timestamp (required, immutable)
+    //
+    // Collection: newsletter
+    // Document ID: {emailId} (lowercased email)
+    // Fields:
+    //   - email: string (required, valid email, <= 254 chars)
+    //   - createdAt: timestamp (required)
+    //
+    // Collection: inquiries
+    // Document ID: {inquiryId}
+    // Fields:
+    //   - name: string (required, 1..120 chars)
+    //   - email: string (required, valid email, <= 254 chars)
+    //   - subject: string (required, 1..200 chars)
+    //   - message: string (required, 1..5000 chars)
+    //   - createdAt: timestamp (required)
+    //
+    // Collections: draftOrders, inventory
+    // Backend Admin SDK only (all client access denied).
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.get('active', true) == true;
+    }
+
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    function validStringLength(field, minLen, maxLen) {
+      return request.resource.data[field] is string &&
+        request.resource.data[field].size() >= minLen &&
+        request.resource.data[field].size() <= maxLen;
+    }
+
+    function isValidOptionalString(field, minLen, maxLen) {
+      return !(field in request.resource.data) ||
+        (request.resource.data[field] is string &&
+         request.resource.data[field].size() >= minLen &&
+         request.resource.data[field].size() <= maxLen);
+    }
+
+    function isValidEmail(email) {
+      return email is string &&
+        email.size() <= 254 &&
+        email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    function areImmutableFieldsUnchanged(fields) {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny(fields);
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+
+    function isValidProduct(data) {
+      return hasRequiredFields(['name', 'slug', 'price', 'stock', 'active', 'updatedAt']) &&
+        hasOnlyAllowedFields([
+          'name', 'slug', 'sku', 'price', 'compareAtPrice',
+          'category', 'collection', 'material', 'fit', 'sizes',
+          'description', 'stock', 'images', 'thumbnail',
+          'active', 'featured', 'bestseller', 'newArrival',
+          'createdAt', 'updatedAt'
+        ]) &&
+        validStringLength('name', 1, 200) &&
+        validStringLength('slug', 1, 200) &&
+        isValidOptionalString('sku', 0, 100) &&
+        data.price is number && data.price >= 0 &&
+        (!('compareAtPrice' in data) || data.compareAtPrice == null || (data.compareAtPrice is number && data.compareAtPrice >= 0)) &&
+        isValidOptionalString('category', 0, 100) &&
+        isValidOptionalString('collection', 0, 100) &&
+        isValidOptionalString('material', 0, 200) &&
+        isValidOptionalString('fit', 0, 100) &&
+        (!('sizes' in data) || (data.sizes is list && data.sizes.size() <= 30)) &&
+        isValidOptionalString('description', 0, 10000) &&
+        (data.stock is map || (data.stock is number && data.stock >= 0)) &&
+        (!('images' in data) || (data.images is map && data.images.keys().size() <= 20)) &&
+        isValidOptionalString('thumbnail', 0, 1000) &&
+        data.active is bool &&
+        (!('featured' in data) || data.featured is bool) &&
+        (!('bestseller' in data) || data.bestseller is bool) &&
+        (!('newArrival' in data) || data.newArrival is bool) &&
+        (!('createdAt' in data) || data.createdAt is timestamp) &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidTaxonomy(data) {
+      return hasRequiredFields(['name']) &&
+        hasOnlyAllowedFields(['name', 'slug', 'description', 'image', 'active', 'order', 'createdAt', 'updatedAt']) &&
+        validStringLength('name', 1, 120) &&
+        isValidOptionalString('slug', 0, 120) &&
+        isValidOptionalString('description', 0, 1000) &&
+        isValidOptionalString('image', 0, 1000) &&
+        (!('active' in data) || data.active is bool) &&
+        (!('order' in data) || data.order is number) &&
+        (!('createdAt' in data) || data.createdAt is timestamp) &&
+        (!('updatedAt' in data) || data.updatedAt is timestamp);
+    }
+
+    function isValidSettings(data) {
+      return hasRequiredFields(['freeShippingThreshold', 'standardShippingFee', 'updatedAt']) &&
+        hasOnlyAllowedFields([
+          'announcement', 'freeShippingThreshold', 'standardShippingFee',
+          'supportEmail', 'supportPhone', 'updatedAt'
+        ]) &&
+        isValidOptionalString('announcement', 0, 500) &&
+        data.freeShippingThreshold is number && data.freeShippingThreshold >= 0 &&
+        data.standardShippingFee is number && data.standardShippingFee >= 0 &&
+        isValidOptionalString('supportEmail', 0, 254) &&
+        isValidOptionalString('supportPhone', 0, 50) &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidUser(data) {
+      return hasRequiredFields(['email', 'updatedAt']) &&
+        hasOnlyAllowedFields(['name', 'email', 'phone', 'shippingAddress', 'createdAt', 'updatedAt']) &&
+        isValidOptionalString('name', 0, 120) &&
+        isValidEmail(data.email) &&
+        isValidOptionalString('phone', 0, 30) &&
+        (!('shippingAddress' in data) || (data.shippingAddress is map && data.shippingAddress.keys().size() <= 15)) &&
+        (!('createdAt' in data) || data.createdAt is timestamp) &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidWishlistItem(data, productId) {
+      return hasRequiredFields(['productId', 'createdAt']) &&
+        hasOnlyAllowedFields(['productId', 'createdAt']) &&
+        data.productId is string &&
+        data.productId == productId &&
+        data.productId.size() >= 1 &&
+        data.productId.size() <= 150 &&
+        data.createdAt is timestamp;
+    }
+
+    function isValidOrderUpdate(data) {
+      let validStatuses = [
+        'pending', 'confirmed', 'processing', 'packed',
+        'shipped', 'out_for_delivery', 'delivered', 'cancelled', 'refunded'
+      ];
+      return request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['orderStatus', 'trackingNumber', 'notes', 'updatedAt']) &&
+        areImmutableFieldsUnchanged([
+          'orderId', 'userId', 'customer', 'shippingAddress', 'items',
+          'subtotal', 'discount', 'shipping', 'total', 'couponCode',
+          'paymentStatus', 'paymentId', 'razorpayOrderId', 'createdAt'
+        ]) &&
+        data.orderStatus is string &&
+        data.orderStatus in validStatuses &&
+        isValidOptionalString('trackingNumber', 0, 100) &&
+        isValidOptionalString('notes', 0, 1000) &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidCoupon(data) {
+      return hasRequiredFields(['code', 'discountType', 'discountValue', 'active']) &&
+        hasOnlyAllowedFields([
+          'code', 'discountType', 'discountValue', 'minimumOrderValue',
+          'maximumDiscount', 'usageLimit', 'expiryDate', 'usedCount',
+          'active', 'createdAt'
+        ]) &&
+        validStringLength('code', 1, 50) &&
+        data.discountType in ['percentage', 'fixed'] &&
+        data.discountValue is number && data.discountValue > 0 &&
+        (!('minimumOrderValue' in data) || (data.minimumOrderValue is number && data.minimumOrderValue >= 0)) &&
+        (!('maximumDiscount' in data) || data.maximumDiscount == null || (data.maximumDiscount is number && data.maximumDiscount >= 0)) &&
+        (!('usageLimit' in data) || data.usageLimit == null || (data.usageLimit is number && data.usageLimit >= 0)) &&
+        (!('expiryDate' in data) || data.expiryDate == null || (data.expiryDate is string && data.expiryDate.size() <= 50)) &&
+        (!('usedCount' in data) || (data.usedCount is number && data.usedCount >= 0)) &&
+        data.active is bool &&
+        (!('createdAt' in data) || data.createdAt is timestamp);
+    }
+
+    function isValidReviewCreate(data) {
+      return hasRequiredFields(['productId', 'userId', 'customerName', 'rating', 'title', 'comment', 'verified', 'approved', 'createdAt']) &&
+        hasOnlyAllowedFields(['productId', 'userId', 'customerName', 'rating', 'title', 'comment', 'verified', 'approved', 'createdAt']) &&
+        validStringLength('productId', 1, 150) &&
+        data.userId == request.auth.uid &&
+        validStringLength('customerName', 1, 120) &&
+        data.rating is number && data.rating >= 1 && data.rating <= 5 &&
+        validStringLength('title', 1, 200) &&
+        validStringLength('comment', 1, 2000) &&
+        data.verified is bool &&
+        data.approved == false &&
+        data.createdAt is timestamp;
+    }
+
+    function isValidReviewUpdate(data) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['approved', 'verified']) &&
+        areImmutableFieldsUnchanged(['productId', 'userId', 'customerName', 'rating', 'title', 'comment', 'createdAt']) &&
+        data.approved is bool &&
+        data.verified is bool;
+    }
+
+    function isValidNewsletter(data, emailId) {
+      return hasRequiredFields(['email', 'createdAt']) &&
+        hasOnlyAllowedFields(['email', 'createdAt']) &&
+        isValidEmail(data.email) &&
+        data.email == emailId &&
+        data.createdAt is timestamp;
+    }
+
+    function isValidInquiry(data) {
+      return hasRequiredFields(['name', 'email', 'subject', 'message', 'createdAt']) &&
+        hasOnlyAllowedFields(['name', 'email', 'subject', 'message', 'createdAt']) &&
+        validStringLength('name', 1, 120) &&
+        isValidEmail(data.email) &&
+        validStringLength('subject', 1, 200) &&
+        validStringLength('message', 1, 5000) &&
+        data.createdAt is timestamp;
+    }
+
+    // ===============================================================
+    // Collection Rules
+    // ===============================================================
+
+    // Products: public read for active products; admins read/write all
+    match /products/{productId} {
+      allow read: if resource.data.active == true || isAdmin();
+      allow create, update: if isAdmin() && isValidProduct(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    // Categories & Collections: public read, admin write
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow create, update: if isAdmin() && isValidTaxonomy(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /collections/{collectionId} {
+      allow read: if true;
+      allow create, update: if isAdmin() && isValidTaxonomy(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    // Storefront Settings: public read for 'storefront' doc; admin write
+    match /settings/{settingId} {
+      allow read: if settingId == 'storefront' || isAdmin();
+      allow create, update: if isAdmin() && isValidSettings(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    // Users & Wishlist: owner read/write, admins can read all user profiles
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId) && isValidUser(request.resource.data);
+      allow update: if isOwner(userId) &&
+        isValidUser(request.resource.data) &&
+        (!('createdAt' in resource.data) || request.resource.data.createdAt == resource.data.createdAt);
+      allow delete: if isOwner(userId) || isAdmin();
+
+      match /wishlist/{productId} {
+        allow read: if isOwner(userId);
+        allow create, update: if isOwner(userId) && isValidWishlistItem(request.resource.data, productId);
+        allow delete: if isOwner(userId);
+      }
+    }
+
+    // Orders:
+    // - Created & deleted exclusively by backend Admin SDK (no direct client create/delete)
+    // - List restricted strictly to authenticated order owner or admin
+    // - SECURITY TRADE-OFF: `get` is open to support unauthenticated guest order tracking
+    //   via exact orderId in order-tracking.html (which verifies email/phone client-side).
+    //   Because `get` exposes the order document if an orderId is known/guessed, consider
+    //   moving guest order tracking to a Cloud Function that verifies email/phone server-side
+    //   and returns only non-PII status fields, then restrict `get` to owner/admin.
+    match /orders/{orderId} {
+      allow get: if true;
+      allow list: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create, delete: if false;
+      allow update: if isAdmin() && isValidOrderUpdate(request.resource.data);
+    }
+
+    // Coupons: public read for active coupons (checkout lookup); admin read/write all
+    match /coupons/{couponId} {
+      allow read: if resource.data.active == true || isAdmin();
+      allow create, update: if isAdmin() && isValidCoupon(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    // Reviews: public read for approved reviews; authenticated users create unapproved reviews; admin moderates
+    match /reviews/{reviewId} {
+      allow read: if resource.data.approved == true || isAdmin();
+      allow create: if isAuthenticated() && isValidReviewCreate(request.resource.data);
+      allow update: if isAdmin() && isValidReviewUpdate(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    // Admins: self-read only, no client writes
+    match /admins/{adminId} {
+      allow read: if isOwner(adminId);
+      allow write: if false;
+    }
+
+    // Newsletter & Inquiries: public create with validation, admin-only read/update/delete
+    match /newsletter/{emailId} {
+      allow create: if isValidNewsletter(request.resource.data, emailId);
+      allow read, update, delete: if isAdmin();
+    }
+
+    match /inquiries/{inquiryId} {
+      allow create: if isValidInquiry(request.resource.data);
+      allow read, update, delete: if isAdmin();
+    }
+
+    // Backend-only collections (Admin SDK only)
+    match /draftOrders/{draftId} {
+      allow read, write: if false;
+    }
+
+    match /inventory/{inventoryId} {
+      allow read, write: if false;
+    }
+
+    // Default deny all other paths
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

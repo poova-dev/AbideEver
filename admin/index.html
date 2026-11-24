@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Dashboard — AbideEver™</title>
+  <link rel="icon" href="../assets/images/logo.png" type="image/png" />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="../assets/js/tailwind-config.js"></script>
+  <link rel="stylesheet" href="../assets/css/app.css" />
+</head>
+<body class="bg-canvas min-h-screen">
+  <div id="admin-auth-gate" class="hidden min-h-screen flex items-center justify-center p-4"></div>
+
+  <div id="admin-main-content" class="hidden min-h-screen flex flex-col lg:flex-row">
+    <aside id="admin-sidebar" class="w-full lg:w-64 bg-brand-deep text-cream flex flex-col shrink-0"></aside>
+
+    <main class="flex-1 p-6 sm:p-8 lg:p-10 space-y-8 overflow-x-hidden">
+      <div class="border-b border-border pb-5">
+        <p class="text-[11px] uppercase tracking-[0.18em] text-brand font-semibold">Analytics & Operations</p>
+        <h1 class="font-serif text-3xl font-semibold text-ink mt-1">Dashboard Overview</h1>
+      </div>
+
+      <div id="kpi-grid" class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="h-24 skeleton"></div>
+        <div class="h-24 skeleton"></div>
+        <div class="h-24 skeleton"></div>
+        <div class="h-24 skeleton"></div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <section class="lg:col-span-8 border border-border bg-surface p-6">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-xs uppercase tracking-[0.16em] font-semibold text-ink">Recent Orders</h2>
+            <a href="orders.html" class="text-xs text-brand underline">Manage Orders →</a>
+          </div>
+          <div id="recent-orders-table" class="overflow-x-auto text-sm"></div>
+        </section>
+
+        <section class="lg:col-span-4 border border-border bg-surface p-6">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-xs uppercase tracking-[0.16em] font-semibold text-ink">Low Stock Alerts</h2>
+            <a href="products.html" class="text-xs text-brand underline">Inventory →</a>
+          </div>
+          <div id="low-stock-list" class="space-y-3 text-xs"></div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <script type="module">
+    import { mountAdminShell, requireAdminAccess } from '../assets/js/admin.js';
+    import { getTotalStock } from '../assets/js/products.js';
+    import { escapeHTML, formatDate, formatINR } from '../assets/js/utils.js';
+
+    mountAdminShell('dashboard');
+
+    requireAdminAccess(async (fb) => {
+      const { collection, getDocs, query, orderBy } = fb.fsMod;
+      const [ordersSnap, productsSnap, usersSnap] = await Promise.all([
+        getDocs(query(collection(fb.db, 'orders'), orderBy('createdAt', 'desc'))),
+        getDocs(collection(fb.db, 'products')),
+        getDocs(collection(fb.db, 'users')),
+      ]);
+
+      const orders = ordersSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      const products = productsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+
+      const todayStr = new Date().toDateString();
+      const paidOrders = orders.filter((o) => o.paymentStatus === 'paid');
+      const totalSales = paidOrders.reduce((s, o) => s + Number(o.total || 0), 0);
+      const todaySales = paidOrders
+        .filter((o) => o.createdAt?.toDate && o.createdAt.toDate().toDateString() === todayStr)
+        .reduce((s, o) => s + Number(o.total || 0), 0);
+      const pendingOrders = orders.filter((o) => ['pending', 'confirmed', 'processing'].includes(o.orderStatus)).length;
+      const lowStockProducts = products.filter((p) => getTotalStock(p) <= 5);
+
+      document.getElementById('kpi-grid').innerHTML = [
+        { label: 'Total Sales', value: formatINR(totalSales) },
+        { label: "Today's Sales", value: formatINR(todaySales) },
+        { label: 'Total Orders', value: orders.length },
+        { label: 'Pending Orders', value: pendingOrders },
+        { label: 'Products', value: products.length },
+        { label: 'Low Stock Items', value: lowStockProducts.length },
+        { label: 'Customers', value: usersSnap.size },
+        { label: 'Paid Orders', value: paidOrders.length },
+      ]
+        .map(
+          (k) => `
+          <div class="border border-border bg-surface p-5">
+            <p class="text-[11px] uppercase tracking-wider text-muted">${k.label}</p>
+            <p class="text-2xl font-semibold text-ink mt-1">${k.value}</p>
+          </div>
+        `
+        )
+        .join('');
+
+      document.getElementById('recent-orders-table').innerHTML = orders.length
+        ? `<table class="w-full text-left text-xs">
+            <thead class="border-b border-border text-muted uppercase tracking-wider">
+              <tr><th class="py-2.5 pr-4">Order</th><th class="py-2.5 pr-4">Customer</th><th class="py-2.5 pr-4">Date</th><th class="py-2.5 pr-4">Status</th><th class="py-2.5 text-right">Total</th></tr>
+            </thead>
+            <tbody class="divide-y divide-border">
+              ${orders
+                .slice(0, 8)
+                .map(
+                  (o) => `
+                  <tr>
+                    <td class="py-3 pr-4 font-medium">${escapeHTML(o.id)}</td>
+                    <td class="py-3 pr-4">${escapeHTML(o.customer?.name || '—')}</td>
+                    <td class="py-3 pr-4 text-muted">${formatDate(o.createdAt)}</td>
+                    <td class="py-3 pr-4 uppercase">${escapeHTML(o.orderStatus || 'pending')}</td>
+                    <td class="py-3 text-right font-semibold">${formatINR(o.total)}</td>
+                  </tr>
+                `
+                )
+                .join('')}
+            </tbody>
+          </table>`
+        : '<p class="text-xs text-muted">No orders recorded yet.</p>';
+
+      document.getElementById('low-stock-list').innerHTML = lowStockProducts.length
+        ? lowStockProducts
+            .map(
+              (p) => `
+              <div class="flex items-center justify-between border-b border-border pb-2">
+                <span class="font-medium text-ink truncate pr-2">${escapeHTML(p.name)}</span>
+                <span class="text-crimson font-semibold shrink-0">${getTotalStock(p)} left</span>
+              </div>
+            `
+            )
+            .join('')
+        : '<p class="text-muted">All products have healthy stock levels.</p>';
+    });
+  </script>
+</body>
+</html>

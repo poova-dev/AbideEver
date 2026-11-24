@@ -1,0 +1,209 @@
+:root {
+  --bg-canvas: #F7F5F0;
+  --bg-surface: #FFFFFF;
+  --text-primary: #151515;
+  --text-muted: #6F6A63;
+  --border-color: #DDD9D1;
+  --brand-green: #003D2B;
+  --brand-deep: #002E21;
+  --accent-cream: #EEE9DF;
+  --product-dark: #111111;
+  --accent-red: #9E2A2B;
+  --ease-editorial: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+html {
+  scroll-behavior: smooth;
+  background-color: var(--bg-canvas);
+  color: var(--text-primary);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background-color: var(--bg-canvas);
+  color: var(--text-primary);
+  overflow-x: hidden;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+main {
+  flex: 1 0 auto;
+}
+
+/* Focus states for accessibility */
+:focus-visible {
+  outline: 2px solid var(--brand-green);
+  outline-offset: 2px;
+}
+
+/* Editorial buttons */
+.btn-primary {
+  background-color: var(--brand-green);
+  color: #FFFFFF;
+  border: 1px solid var(--brand-green);
+  transition: background-color 250ms ease-out, border-color 250ms ease-out, transform 180ms ease-out;
+}
+.btn-primary:hover:not(:disabled) {
+  background-color: var(--brand-deep);
+  border-color: var(--brand-deep);
+}
+.btn-primary:active:not(:disabled) {
+  transform: scale(0.99);
+}
+
+.btn-secondary {
+  background-color: transparent;
+  color: var(--text-primary);
+  border: 1px solid var(--text-primary);
+  transition: background-color 250ms ease-out, color 250ms ease-out, transform 180ms ease-out;
+}
+.btn-secondary:hover:not(:disabled) {
+  background-color: var(--text-primary);
+  color: #FFFFFF;
+}
+
+.btn-light {
+  background-color: #FFFFFF;
+  color: var(--text-primary);
+  border: 1px solid #FFFFFF;
+  transition: background-color 250ms ease-out, color 250ms ease-out;
+}
+.btn-light:hover:not(:disabled) {
+  background-color: var(--accent-cream);
+  border-color: var(--accent-cream);
+}
+
+/* Product Card Hover System (Desktop) */
+.product-card-media {
+  position: relative;
+  overflow: hidden;
+  background-color: var(--accent-cream);
+}
+
+.product-card-img-primary,
+.product-card-img-secondary {
+  transition: transform 350ms var(--ease-editorial), opacity 300ms ease-out;
+  will-change: transform, opacity;
+}
+
+@media (hover: hover) {
+  .product-card:hover .product-card-img-primary {
+    transform: scale(1.03);
+  }
+  .product-card:hover .product-card-img-secondary {
+    opacity: 1;
+    transform: scale(1.03);
+  }
+  .product-card .product-card-actions {
+    opacity: 0;
+    transform: translateY(6px);
+    transition: opacity 240ms ease-out, transform 240ms ease-out;
+  }
+  .product-card:hover .product-card-actions,
+  .product-card:focus-within .product-card-actions {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Drawers & Modals */
+.drawer-backdrop,
+.modal-backdrop {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 260ms ease-out;
+}
+.drawer-backdrop.is-open,
+.modal-backdrop.is-open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.drawer-panel-right {
+  transform: translateX(100%);
+  transition: transform 320ms var(--ease-editorial);
+}
+.drawer-backdrop.is-open .drawer-panel-right {
+  transform: translateX(0);
+}
+
+.drawer-panel-left {
+  transform: translateX(-100%);
+  transition: transform 320ms var(--ease-editorial);
+}
+.drawer-backdrop.is-open .drawer-panel-left {
+  transform: translateX(0);
+}
+
+.modal-panel {
+  opacity: 0;
+  transform: scale(0.97) translateY(8px);
+  transition: opacity 250ms ease-out, transform 260ms var(--ease-editorial);
+}
+.modal-backdrop.is-open .modal-panel {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+}
+
+/* Page & Hero Reveal */
+.reveal-up {
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity 550ms var(--ease-editorial), transform 550ms var(--ease-editorial);
+}
+.reveal-up.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Skeleton Loader */
+.skeleton {
+  background: linear-gradient(90deg, #EEE9DF 25%, #E5DFD3 50%, #EEE9DF 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes skeleton-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Fly-to-bag clone */
+.fly-to-bag-clone {
+  position: fixed;
+  z-index: 9999;
+  pointer-events: none;
+  object-fit: cover;
+  transition: all 520ms var(--ease-editorial);
+}
+
+/* Toast notification */
+.toast-item {
+  transform: translateY(12px);
+  opacity: 0;
+  transition: transform 250ms var(--ease-editorial), opacity 250ms ease-out;
+}
+.toast-item.is-visible {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .reveal-up {
+    opacity: 1;
+    transform: none;
+  }
+}

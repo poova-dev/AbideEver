@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Order Confirmed — AbideEver™</title>
+  <link rel="icon" href="assets/images/logo.png" type="image/png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="assets/js/tailwind-config.js"></script>
+  <link rel="stylesheet" href="assets/css/app.css" />
+</head>
+<body>
+  <div id="site-header"></div>
+  <main class="max-w-2xl mx-auto w-full px-4 sm:px-6 py-16 sm:py-24">
+    <div class="border border-border bg-surface p-8 sm:p-12 text-center space-y-5">
+      <div class="w-12 h-12 mx-auto bg-brand text-white flex items-center justify-center text-xl">✓</div>
+      <p class="text-[11px] uppercase tracking-[0.2em] text-brand font-semibold">Payment Verified</p>
+      <h1 class="font-serif text-3xl sm:text-4xl font-semibold text-ink">Thank you for your order.</h1>
+      <p class="text-sm text-muted">Your order has been confirmed and is being prepared for dispatch.</p>
+      <div class="bg-canvas border border-border py-3 px-4 inline-block text-xs">
+        <span class="text-muted uppercase tracking-wider">Order ID: </span>
+        <strong id="success-order-id" class="text-ink font-semibold">—</strong>
+      </div>
+      <div class="pt-4 flex flex-wrap justify-center gap-3">
+        <a id="track-link" href="order-tracking.html" class="btn-primary px-7 py-3 text-xs uppercase tracking-[0.14em] font-semibold">Track Order</a>
+        <a href="shop.html" class="btn-secondary px-7 py-3 text-xs uppercase tracking-[0.14em] font-medium">Continue Shopping</a>
+      </div>
+    </div>
+  </main>
+  <div id="site-footer"></div>
+  <script type="module">
+    import { mountHeader } from './components/header.js';
+    import { mountFooter } from './components/footer.js';
+    import { mountCartDrawer } from './components/cart-drawer.js';
+    import { getQueryParam } from './assets/js/utils.js';
+
+    mountHeader();
+    mountFooter();
+    mountCartDrawer();
+
+    const orderId = getQueryParam('orderId');
+    if (orderId) {
+      document.getElementById('success-order-id').textContent = orderId;
+      document.getElementById('track-link').href = `order-tracking.html?orderId=${encodeURIComponent(orderId)}`;
+    }
+  </script>
+</body>
+</html>

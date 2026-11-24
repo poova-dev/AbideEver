@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Order Tracking — AbideEver™</title>
+  <link rel="icon" href="assets/images/logo.png" type="image/png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="assets/js/tailwind-config.js"></script>
+  <link rel="stylesheet" href="assets/css/app.css" />
+</head>
+<body>
+  <div id="site-header"></div>
+
+  <main class="max-w-4xl mx-auto w-full px-4 sm:px-6 py-12 sm:py-16">
+    <p class="text-[11px] uppercase tracking-[0.18em] text-brand font-semibold mb-2">Live Status</p>
+    <h1 class="font-serif text-3xl sm:text-4xl font-semibold text-ink mb-6">Track Your Order</h1>
+
+    <form id="track-form" class="border border-border bg-surface p-6 grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+      <div>
+        <label class="block text-xs uppercase tracking-wider text-muted mb-1" for="t-order-id">Order ID</label>
+        <input id="t-order-id" type="text" required class="w-full border border-border bg-canvas px-3.5 py-2.5 text-sm focus:outline-none focus:border-brand" placeholder="e.g. AE-10042" />
+      </div>
+      <div>
+        <label class="block text-xs uppercase tracking-wider text-muted mb-1" for="t-contact">Phone or Email</label>
+        <input id="t-contact" type="text" required class="w-full border border-border bg-canvas px-3.5 py-2.5 text-sm focus:outline-none focus:border-brand" placeholder="Email or phone used at checkout" />
+      </div>
+      <div class="flex items-end">
+        <button type="submit" class="btn-primary w-full py-2.5 text-xs uppercase tracking-[0.15em] font-semibold h-[42px]">Track Order</button>
+      </div>
+    </form>
+
+    <div id="track-result"></div>
+  </main>
+
+  <div id="site-footer"></div>
+
+  <script type="module">
+    import { mountHeader } from './components/header.js';
+    import { mountFooter } from './components/footer.js';
+    import { mountCartDrawer } from './components/cart-drawer.js';
+    import { lookupOrder, ORDER_TIMELINE_STEPS } from './assets/js/orders.js';
+    import { escapeHTML, formatDate, formatINR, getQueryParam } from './assets/js/utils.js';
+
+    mountHeader();
+    mountFooter();
+    mountCartDrawer();
+
+    const preId = getQueryParam('orderId');
+    if (preId) document.getElementById('t-order-id').value = preId;
+
+    const resultEl = document.getElementById('track-result');
+
+    document.getElementById('track-form')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      resultEl.innerHTML = '<div class="h-40 skeleton"></div>';
+      try {
+        const order = await lookupOrder(
+          document.getElementById('t-order-id').value,
+          document.getElementById('t-contact').value
+        );
+
+        if (!order) {
+          resultEl.innerHTML = `
+            <div class="border border-border bg-surface p-8 text-center">
+              <p class="font-serif text-2xl text-ink mb-1">Order Not Found</p>
+              <p class="text-xs text-muted">Verify your Order ID and email/phone number and try again.</p>
+            </div>
+          `;
+          return;
+        }
+
+        const currentIdx = ORDER_TIMELINE_STEPS.findIndex((s) => s.key === order.orderStatus);
+
+        resultEl.innerHTML = `
+          <div class="border border-border bg-surface p-6 sm:p-8 space-y-8">
+            <div class="flex flex-wrap items-center justify-between gap-4 pb-5 border-b border-border">
+              <div>
+                <p class="text-xs text-muted uppercase tracking-wider">Order ID</p>
+                <p class="text-lg font-semibold text-ink">${escapeHTML(order.id)}</p>
+              </div>
+              <div>
+                <p class="text-xs text-muted uppercase tracking-wider">Placed On</p>
+                <p class="text-sm text-ink">${formatDate(order.createdAt)}</p>
+              </div>
+              <div>
+                <p class="text-xs text-muted uppercase tracking-wider">Total</p>
+                <p class="text-sm font-semibold text-ink">${formatINR(order.total)}</p>
+              </div>
+              ${
+                order.trackingNumber
+                  ? `<div><p class="text-xs text-muted uppercase tracking-wider">Tracking #</p><p class="text-sm font-medium text-brand">${escapeHTML(order.trackingNumber)}</p></div>`
+                  : ''
+              }
+            </div>
+
+            <!-- Timeline -->
+            <div class="grid grid-cols-1 sm:grid-cols-7 gap-4">
+              ${ORDER_TIMELINE_STEPS.map((step, idx) => {
+                const done = idx <= (currentIdx === -1 ? 0 : currentIdx);
+                return `
+                  <div class="flex sm:flex-col items-center sm:text-center gap-3 sm:gap-2">
+                    <div class="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-semibold ${done ? 'bg-brand text-white' : 'bg-cream text-muted border border-border'}">${done ? '✓' : idx + 1}</div>
+                    <span class="text-[11px] uppercase tracking-wider ${done ? 'text-ink font-semibold' : 'text-muted'}">${escapeHTML(step.label)}</span>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </div>
+        `;
+      } catch (err) {
+        resultEl.innerHTML = `
+          <div class="border border-border bg-surface p-6 text-sm text-muted">${escapeHTML(err.message)}</div>
+        `;
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Account — AbideEver™</title>
+  <link rel="icon" href="assets/images/logo.png" type="image/png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="assets/js/tailwind-config.js"></script>
+  <link rel="stylesheet" href="assets/css/app.css" />
+</head>
+<body>
+  <div id="site-header"></div>
+
+  <main class="max-w-[1440px] mx-auto w-full px-4 sm:px-6 lg:px-10 py-10 sm:py-14">
+    <div id="account-root">
+      <div class="h-48 skeleton"></div>
+    </div>
+  </main>
+
+  <div id="site-footer"></div>
+
+  <script type="module">
+    import { mountHeader } from './components/header.js';
+    import { mountFooter } from './components/footer.js';
+    import { mountCartDrawer } from './components/cart-drawer.js';
+    import { renderProductCard } from './components/product-card.js';
+    import { onAuthChange, signOutUser } from './assets/js/auth.js';
+    import { fetchProducts } from './assets/js/products.js';
+    import { fetchUserOrders } from './assets/js/orders.js';
+    import { getWishlistIds } from './assets/js/wishlist.js';
+    import { escapeHTML, formatDate, formatINR } from './assets/js/utils.js';
+
+    mountHeader();
+    mountFooter();
+    mountCartDrawer();
+
+    const root = document.getElementById('account-root');
+
+    onAuthChange(async (user) => {
+      const [products, wishlistIds] = await Promise.all([
+        fetchProducts(),
+        getWishlistIds(user?.uid || null).catch(() => []),
+      ]);
+
+      const wishlistProducts = products.filter((p) => wishlistIds.includes(p.id));
+
+      if (!user) {
+        root.innerHTML = `
+          <div class="space-y-12">
+            <div class="border border-border bg-surface p-8 sm:p-12 text-center max-w-xl mx-auto">
+              <p class="text-[11px] uppercase tracking-[0.18em] text-brand font-semibold mb-2">AbideEver™ Account</p>
+              <h1 class="font-serif text-3xl font-semibold text-ink mb-2">Sign in to manage orders & saved items</h1>
+              <p class="text-sm text-muted mb-6">Your guest wishlist is saved on this device and will sync automatically when you sign in.</p>
+              <button type="button" id="acct-signin-btn" class="btn-primary px-7 py-3 text-xs uppercase tracking-[0.15em] font-semibold">Sign In / Create Account</button>
+            </div>
+
+            <section id="wishlist">
+              <h2 class="text-lg font-semibold uppercase tracking-wider text-ink mb-6">Saved Wishlist (${wishlistProducts.length})</h2>
+              <div id="acct-wishlist-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6"></div>
+            </section>
+          </div>
+        `;
+        document.getElementById('acct-signin-btn')?.addEventListener('click', () => {
+          document.getElementById('auth-modal')?.classList.add('is-open');
+        });
+        const wGrid = document.getElementById('acct-wishlist-grid');
+        if (!wishlistProducts.length) {
+          wGrid.innerHTML = '<p class="col-span-full text-sm text-muted">Your wishlist is empty.</p>';
+        } else {
+          wishlistProducts.forEach((p) => wGrid.appendChild(renderProductCard(p, { wishlistIds })));
+        }
+        return;
+      }
+
+      const orders = await fetchUserOrders(user.uid).catch(() => []);
+
+      root.innerHTML = `
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-border mb-10">
+          <div>
+            <p class="text-[11px] uppercase tracking-[0.18em] text-brand font-semibold">Welcome back</p>
+            <h1 class="font-serif text-3xl sm:text-4xl font-semibold text-ink mt-1">${escapeHTML(user.displayName || user.email)}</h1>
+            <p class="text-xs text-muted mt-1">${escapeHTML(user.email)}</p>
+          </div>
+          <button type="button" id="acct-logout" class="btn-secondary px-5 py-2.5 text-xs uppercase tracking-[0.14em] font-medium self-start">Logout</button>
+        </div>
+
+        <div class="space-y-14">
+          <section>
+            <h2 class="text-sm uppercase tracking-[0.14em] font-semibold text-ink mb-4">Order History (${orders.length})</h2>
+            ${
+              orders.length
+                ? `<div class="border border-border bg-surface divide-y divide-border">
+                    ${orders
+                      .map(
+                        (o) => `
+                        <div class="p-5 flex flex-wrap items-center justify-between gap-4 text-sm">
+                          <div>
+                            <p class="font-semibold text-ink">${escapeHTML(o.id)}</p>
+                            <p class="text-xs text-muted">${formatDate(o.createdAt)}</p>
+                          </div>
+                          <span class="text-xs uppercase tracking-wider px-2.5 py-1 border border-border bg-canvas">${escapeHTML(o.orderStatus || 'pending')}</span>
+                          <span class="font-semibold text-ink">${formatINR(o.total)}</span>
+                          <a href="order-tracking.html?orderId=${encodeURIComponent(o.id)}" class="text-xs text-brand underline uppercase tracking-wider">Track →</a>
+                        </div>
+                      `
+                      )
+                      .join('')}
+                  </div>`
+                : `<div class="border border-border bg-surface p-8 text-sm text-muted">You have not placed any orders yet.</div>`
+            }
+          </section>
+
+          <section id="wishlist">
+            <h2 class="text-sm uppercase tracking-[0.14em] font-semibold text-ink mb-4">Wishlist (${wishlistProducts.length})</h2>
+            <div id="acct-wishlist-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6"></div>
+          </section>
+        </div>
+      `;
+
+      document.getElementById('acct-logout')?.addEventListener('click', () => signOutUser());
+      const wGrid = document.getElementById('acct-wishlist-grid');
+      if (!wishlistProducts.length) {
+        wGrid.innerHTML = '<p class="col-span-full text-sm text-muted">Your wishlist is empty.</p>';
+      } else {
+        wishlistProducts.forEach((p) => wGrid.appendChild(renderProductCard(p, { wishlistIds })));
+      }
+    });
+  </script>
+</body>
+</html>

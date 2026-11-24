@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shipping Policy — AbideEver™</title>
+  <link rel="icon" href="assets/images/logo.png" type="image/png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="assets/js/tailwind-config.js"></script>
+  <link rel="stylesheet" href="assets/css/app.css" />
+</head>
+<body>
+  <div id="site-header"></div>
+  <main class="max-w-3xl mx-auto w-full px-4 sm:px-6 py-12 sm:py-16 space-y-6">
+    <p class="text-[11px] uppercase tracking-[0.18em] text-brand font-semibold">Policies</p>
+    <h1 class="font-serif text-3xl sm:text-4xl font-semibold text-ink">Shipping Policy</h1>
+    <div class="border border-border bg-surface p-6 sm:p-8 space-y-5 text-sm text-muted leading-relaxed">
+      <div>
+        <h2 class="text-xs uppercase tracking-wider font-semibold text-ink mb-1.5">Order Processing</h2>
+        <p>All orders are processed and dispatched within 24–48 business hours (Monday to Saturday, excluding public holidays).</p>
+      </div>
+      <div>
+        <h2 class="text-xs uppercase tracking-wider font-semibold text-ink mb-1.5">Shipping Charges</h2>
+        <p>Complimentary shipping across India on orders of ₹1,999 and above. A flat ₹99 shipping fee applies on orders below ₹1,999.</p>
+      </div>
+      <div>
+        <h2 class="text-xs uppercase tracking-wider font-semibold text-ink mb-1.5">Delivery Timeline</h2>
+        <p>Metro cities typically receive deliveries within 3–5 business days after dispatch. Other serviceable pincodes across India take 5–7 business days.</p>
+      </div>
+      <div>
+        <h2 class="text-xs uppercase tracking-wider font-semibold text-ink mb-1.5">Tracking</h2>
+        <p>Once shipped, your tracking details are available on the <a href="order-tracking.html" class="text-brand underline">Order Tracking</a> page.</p>
+      </div>
+    </div>
+  </main>
+  <div id="site-footer"></div>
+  <script type="module">
+    import { mountHeader } from './components/header.js';
+    import { mountFooter } from './components/footer.js';
+    import { mountCartDrawer } from './components/cart-drawer.js';
+    mountHeader();
+    mountFooter();
+    mountCartDrawer();
+  </script>
+</body>
+</html>

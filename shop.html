@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shop All — AbideEver™</title>
+  <meta name="description" content="Shop AbideEver™ Essentials, Oversized Tees, Round Neck, Polo T-shirts, and Faith Collection." />
+  <link rel="canonical" href="https://abideever.com/shop.html" />
+  <link rel="icon" href="assets/images/logo.png" type="image/png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="assets/js/tailwind-config.js"></script>
+  <link rel="stylesheet" href="assets/css/app.css" />
+</head>
+<body>
+  <div id="site-header"></div>
+
+  <main class="max-w-[1440px] mx-auto w-full px-4 sm:px-6 lg:px-10 py-10 sm:py-14">
+    <div class="border-b border-border pb-6 mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
+      <div>
+        <p class="text-[11px] uppercase tracking-[0.18em] text-brand font-semibold mb-1">AbideEver™ Catalog</p>
+        <h1 id="shop-heading" class="font-serif text-3xl sm:text-4xl font-semibold text-ink">All Products</h1>
+        <p id="shop-count" class="text-xs text-muted mt-1">Loading collection...</p>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-3">
+        <select id="filter-collection" aria-label="Filter by collection" class="border border-border bg-surface px-3 py-2 text-xs uppercase tracking-wider focus:outline-none focus:border-brand">
+          <option value="">All Collections</option>
+          <option value="Faith Collection">Faith Collection</option>
+          <option value="Essentials">Essentials</option>
+        </select>
+
+        <select id="filter-category" aria-label="Filter by category" class="border border-border bg-surface px-3 py-2 text-xs uppercase tracking-wider focus:outline-none focus:border-brand">
+          <option value="">All Categories</option>
+          <option value="Oversized">Oversized</option>
+          <option value="Round Neck">Round Neck</option>
+          <option value="Polo T-shirts">Polo T-shirts</option>
+        </select>
+
+        <select id="sort-select" aria-label="Sort products" class="border border-border bg-surface px-3 py-2 text-xs uppercase tracking-wider focus:outline-none focus:border-brand">
+          <option value="featured">Featured</option>
+          <option value="price-asc">Price: Low to High</option>
+          <option value="price-desc">Price: High to Low</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="shop-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6"></div>
+  </main>
+
+  <div id="site-footer"></div>
+
+  <script type="module">
+    import { mountHeader } from './components/header.js';
+    import { mountFooter } from './components/footer.js';
+    import { mountCartDrawer } from './components/cart-drawer.js';
+    import { renderProductCard } from './components/product-card.js';
+    import { fetchProducts } from './assets/js/products.js';
+    import { getWishlistIds } from './assets/js/wishlist.js';
+    import { getCurrentUser } from './assets/js/auth.js';
+    import { getQueryParam } from './assets/js/utils.js';
+    import { renderProductGridSkeletons } from './assets/js/ui.js';
+
+    mountHeader();
+    mountFooter();
+    mountCartDrawer();
+
+    const grid = document.getElementById('shop-grid');
+    const colSelect = document.getElementById('filter-collection');
+    const catSelect = document.getElementById('filter-category');
+    const sortSelect = document.getElementById('sort-select');
+    const heading = document.getElementById('shop-heading');
+    const countEl = document.getElementById('shop-count');
+
+    const initialCollection = getQueryParam('collection') || '';
+    const initialCategory = getQueryParam('category') || '';
+    const initialQuery = getQueryParam('q') || '';
+    const initialFilter = getQueryParam('filter') || '';
+
+    if (initialCollection) colSelect.value = initialCollection;
+    if (initialCategory) catSelect.value = initialCategory;
+
+    let allProducts = [];
+    let wishlistIds = [];
+
+    function applyFilters() {
+      const col = colSelect.value;
+      const cat = catSelect.value;
+      const sort = sortSelect.value;
+
+      let list = [...allProducts];
+      if (col) list = list.filter((p) => (p.collection || '').toLowerCase() === col.toLowerCase());
+      if (cat) list = list.filter((p) => (p.category || '').toLowerCase() === cat.toLowerCase());
+      if (initialFilter === 'new') list = list.filter((p) => p.newArrival);
+      if (initialFilter === 'bestseller') list = list.filter((p) => p.bestseller);
+      if (initialQuery) {
+        const q = initialQuery.toLowerCase();
+        list = list.filter((p) =>
+          [p.name, p.category, p.collection, p.sku, ...(p.tags || [])].join(' ').toLowerCase().includes(q)
+        );
+      }
+
+      if (sort === 'price-asc') list.sort((a, b) => Number(a.price) - Number(b.price));
+      if (sort === 'price-desc') list.sort((a, b) => Number(b.price) - Number(a.price));
+
+      heading.textContent = initialQuery
+        ? `Search: “${initialQuery}”`
+        : col || cat || (initialFilter === 'new' ? 'New Arrivals' : initialFilter === 'bestseller' ? 'Best Sellers' : 'All Products');
+      countEl.textContent = `${list.length} piece${list.length === 1 ? '' : 's'}`;
+
+      grid.innerHTML = '';
+      if (!list.length) {
+        grid.innerHTML = `
+          <div class="col-span-full py-16 text-center border border-border bg-surface">
+            <p class="font-serif text-2xl text-ink mb-2">No products match your selection</p>
+            <p class="text-xs text-muted mb-5">Try clearing filters to view the full AbideEver™ catalog.</p>
+            <a href="shop.html" class="btn-primary inline-block px-6 py-3 text-xs uppercase tracking-[0.14em] font-semibold">Reset Filters</a>
+          </div>
+        `;
+        return;
+      }
+
+      list.forEach((p) => grid.appendChild(renderProductCard(p, { wishlistIds })));
+    }
+
+    renderProductGridSkeletons(grid, 4);
+    Promise.all([
+      fetchProducts(),
+      getWishlistIds(getCurrentUser()?.uid || null).catch(() => []),
+    ]).then(([products, wIds]) => {
+      allProducts = products;
+      wishlistIds = wIds;
+      applyFilters();
+    });
+
+    colSelect.addEventListener('change', applyFilters);
+    catSelect.addEventListener('change', applyFilters);
+    sortSelect.addEventListener('change', applyFilters);
+  </script>
+</body>
+</html>

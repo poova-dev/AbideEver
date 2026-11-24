@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Terms & Conditions — AbideEver™</title>
+  <link rel="icon" href="assets/images/logo.png" type="image/png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="assets/js/tailwind-config.js"></script>
+  <link rel="stylesheet" href="assets/css/app.css" />
+</head>
+<body>
+  <div id="site-header"></div>
+  <main class="max-w-3xl mx-auto w-full px-4 sm:px-6 py-12 sm:py-16 space-y-6">
+    <p class="text-[11px] uppercase tracking-[0.18em] text-brand font-semibold">Legal</p>
+    <h1 class="font-serif text-3xl sm:text-4xl font-semibold text-ink">Terms & Conditions</h1>
+    <div class="border border-border bg-surface p-6 sm:p-8 space-y-5 text-sm text-muted leading-relaxed">
+      <p>By accessing and placing orders on the AbideEver™ storefront, you agree to the terms outlined below.</p>
+      <div>
+        <h2 class="text-xs uppercase tracking-wider font-semibold text-ink mb-1.5">Pricing & Availability</h2>
+        <p>All prices are listed in Indian Rupees (INR) inclusive of applicable taxes. Product availability and stock are verified at checkout.</p>
+      </div>
+      <div>
+        <h2 class="text-xs uppercase tracking-wider font-semibold text-ink mb-1.5">Intellectual Property</h2>
+        <p>All AbideEver™ artwork, logos, photography, and garment designs remain the exclusive property of AbideEver™.</p>
+      </div>
+      <div>
+        <h2 class="text-xs uppercase tracking-wider font-semibold text-ink mb-1.5">Governing Law</h2>
+        <p>These terms are governed by the laws of India.</p>
+      </div>
+    </div>
+  </main>
+  <div id="site-footer"></div>
+  <script type="module">
+    import { mountHeader } from './components/header.js';
+    import { mountFooter } from './components/footer.js';
+    import { mountCartDrawer } from './components/cart-drawer.js';
+    mountHeader();
+    mountFooter();
+    mountCartDrawer();
+  </script>
+</body>
+</html>

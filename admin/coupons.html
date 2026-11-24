@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Coupons — AbideEver™</title>
+  <link rel="icon" href="../assets/images/logo.png" type="image/png" />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="../assets/js/tailwind-config.js"></script>
+  <link rel="stylesheet" href="../assets/css/app.css" />
+</head>
+<body class="bg-canvas min-h-screen">
+  <div id="admin-auth-gate" class="hidden min-h-screen flex items-center justify-center p-4"></div>
+
+  <div id="admin-main-content" class="hidden min-h-screen flex flex-col lg:flex-row">
+    <aside id="admin-sidebar" class="w-full lg:w-64 bg-brand-deep text-cream flex flex-col shrink-0"></aside>
+
+    <main class="flex-1 p-6 sm:p-8 lg:p-10 space-y-8 overflow-x-hidden">
+      <div class="border-b border-border pb-5">
+        <p class="text-[11px] uppercase tracking-[0.18em] text-brand font-semibold">Promotions</p>
+        <h1 class="font-serif text-3xl font-semibold text-ink mt-1">Coupons</h1>
+      </div>
+
+      <form id="coupon-create-form" class="border border-border bg-surface p-6 grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+        <div>
+          <label class="block uppercase tracking-wider text-muted mb-1">Coupon Code</label>
+          <input id="cp-code" type="text" required placeholder="ABIDE10" class="w-full border border-border bg-canvas px-3 py-2 text-sm uppercase" />
+        </div>
+        <div>
+          <label class="block uppercase tracking-wider text-muted mb-1">Discount Type</label>
+          <select id="cp-type" class="w-full border border-border bg-canvas px-3 py-2 text-sm">
+            <option value="percentage">Percentage (%)</option>
+            <option value="fixed">Fixed Amount (₹)</option>
+          </select>
+        </div>
+        <div>
+          <label class="block uppercase tracking-wider text-muted mb-1">Discount Value</label>
+          <input id="cp-value" type="number" min="1" required class="w-full border border-border bg-canvas px-3 py-2 text-sm" />
+        </div>
+        <div>
+          <label class="block uppercase tracking-wider text-muted mb-1">Min Order Value (₹)</label>
+          <input id="cp-min" type="number" min="0" value="0" class="w-full border border-border bg-canvas px-3 py-2 text-sm" />
+        </div>
+        <div>
+          <label class="block uppercase tracking-wider text-muted mb-1">Max Discount (₹, optional)</label>
+          <input id="cp-max" type="number" min="0" class="w-full border border-border bg-canvas px-3 py-2 text-sm" />
+        </div>
+        <div>
+          <label class="block uppercase tracking-wider text-muted mb-1">Usage Limit (optional)</label>
+          <input id="cp-limit" type="number" min="1" class="w-full border border-border bg-canvas px-3 py-2 text-sm" />
+        </div>
+        <div>
+          <label class="block uppercase tracking-wider text-muted mb-1">Expiry Date (optional)</label>
+          <input id="cp-expiry" type="date" class="w-full border border-border bg-canvas px-3 py-2 text-sm" />
+        </div>
+        <div class="flex items-end sm:col-span-2">
+          <button type="submit" class="btn-primary px-6 py-2.5 text-xs uppercase tracking-[0.14em] font-semibold">Create Coupon</button>
+        </div>
+      </form>
+
+      <div id="admin-coupons-table" class="border border-border bg-surface overflow-x-auto"></div>
+    </main>
+  </div>
+
+  <script type="module">
+    import { mountAdminShell, requireAdminAccess } from '../assets/js/admin.js';
+    import { escapeHTML, formatDate } from '../assets/js/utils.js';
+    import { showToast } from '../assets/js/ui.js';
+
+    mountAdminShell('coupons');
+
+    requireAdminAccess(async (fb) => {
+      const { collection, getDocs, doc, setDoc, deleteDoc, updateDoc, serverTimestamp } = fb.fsMod;
+      const wrap = document.getElementById('admin-coupons-table');
+
+      async function loadCoupons() {
+        const snap = await getDocs(collection(fb.db, 'coupons'));
+        const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        wrap.innerHTML = list.length
+          ? `<table class="w-full text-left text-xs">
+              <thead class="border-b border-border bg-canvas text-muted uppercase tracking-wider">
+                <tr><th class="p-3.5">Code</th><th class="p-3.5">Discount</th><th class="p-3.5">Min Order</th><th class="p-3.5">Expiry</th><th class="p-3.5">Status</th><th class="p-3.5 text-right">Actions</th></tr>
+              </thead>
+              <tbody class="divide-y divide-border">
+                ${list
+                  .map(
+                    (c) => `
+                    <tr>
+                      <td class="p-3.5 font-semibold">${escapeHTML(c.code)}</td>
+                      <td class="p-3.5">${c.discountType === 'percentage' ? `${c.discountValue}%` : `₹${c.discountValue}`}</td>
+                      <td class="p-3.5">₹${c.minimumOrderValue || 0}</td>
+                      <td class="p-3.5 text-muted">${formatDate(c.expiryDate)}</td>
+                      <td class="p-3.5">${c.active ? '<span class="text-brand">Active</span>' : '<span class="text-muted">Inactive</span>'}</td>
+                      <td class="p-3.5 text-right space-x-3">
+                        <button type="button" data-toggle="${escapeHTML(c.id)}" data-active="${Boolean(c.active)}" class="text-brand underline">${c.active ? 'Disable' : 'Enable'}</button>
+                        <button type="button" data-del="${escapeHTML(c.id)}" class="text-crimson underline">Delete</button>
+                      </td>
+                    </tr>
+                  `
+                  )
+                  .join('')}
+              </tbody>
+            </table>`
+          : '<p class="p-8 text-sm text-muted text-center">No coupons created yet.</p>';
+
+        wrap.querySelectorAll('[data-toggle]').forEach((btn) => {
+          btn.addEventListener('click', async () => {
+            await updateDoc(doc(fb.db, 'coupons', btn.dataset.toggle), { active: btn.dataset.active !== 'true' });
+            loadCoupons();
+          });
+        });
+        wrap.querySelectorAll('[data-del]').forEach((btn) => {
+          btn.addEventListener('click', async () => {
+            await deleteDoc(doc(fb.db, 'coupons', btn.dataset.del));
+            showToast('Coupon deleted');
+            loadCoupons();
+          });
+        });
+      }
+
+      document.getElementById('coupon-create-form')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const code = document.getElementById('cp-code').value.trim().toUpperCase();
+        await setDoc(doc(fb.db, 'coupons', code), {
+          code,
+          discountType: document.getElementById('cp-type').value,
+          discountValue: Number(document.getElementById('cp-value').value),
+          minimumOrderValue: Number(document.getElementById('cp-min').value || 0),
+          maximumDiscount: document.getElementById('cp-max').value ? Number(document.getElementById('cp-max').value) : null,
+          usageLimit: document.getElementById('cp-limit').value ? Number(document.getElementById('cp-limit').value) : null,
+          expiryDate: document.getElementById('cp-expiry').value || null,
+          usedCount: 0,
+          active: true,
+          createdAt: serverTimestamp(),
+        });
+        e.target.reset();
+        showToast(`Coupon ${code} created`, { type: 'success' });
+        loadCoupons();
+      });
+
+      loadCoupons();
+    });
+  </script>
+</body>
+</html>

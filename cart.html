@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopping Bag — AbideEver™</title>
+  <link rel="icon" href="assets/images/logo.png" type="image/png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="assets/js/tailwind-config.js"></script>
+  <link rel="stylesheet" href="assets/css/app.css" />
+</head>
+<body>
+  <div id="site-header"></div>
+
+  <main class="max-w-[1440px] mx-auto w-full px-4 sm:px-6 lg:px-10 py-10 sm:py-14">
+    <h1 class="font-serif text-3xl sm:text-4xl font-semibold text-ink mb-8">Your Shopping Bag</h1>
+    <div id="cart-page-root"></div>
+  </main>
+
+  <div id="site-footer"></div>
+
+  <script type="module">
+    import { mountHeader } from './components/header.js';
+    import { mountFooter } from './components/footer.js';
+    import { mountCartDrawer } from './components/cart-drawer.js';
+    import { getCartTotals, removeCartItem, setAppliedCoupon, updateCartItemQuantity } from './assets/js/cart.js';
+    import { validateAndApplyCoupon } from './assets/js/checkout.js';
+    import { getOptimizedImageUrl } from './assets/js/cloudinary.js';
+    import { escapeHTML, formatINR } from './assets/js/utils.js';
+    import { showToast } from './assets/js/ui.js';
+
+    mountHeader();
+    mountFooter();
+    mountCartDrawer();
+
+    const root = document.getElementById('cart-page-root');
+
+    function render() {
+      const { items, subtotal, discount, shipping, total, coupon } = getCartTotals();
+      if (!items.length) {
+        root.innerHTML = `
+          <div class="border border-border bg-surface py-16 px-6 text-center">
+            <p class="font-serif text-2xl text-ink mb-2">Your bag is currently empty</p>
+            <p class="text-sm text-muted mb-6">Explore AbideEver™ everyday essentials and faith-inspired pieces.</p>
+            <a href="shop.html" class="btn-primary inline-block px-7 py-3.5 text-xs uppercase tracking-[0.15em] font-semibold">Continue Shopping</a>
+          </div>
+        `;
+        return;
+      }
+
+      root.innerHTML = `
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          <div class="lg:col-span-8 border border-border bg-surface divide-y divide-border">
+            ${items
+              .map(
+                (item) => `
+                <div class="p-4 sm:p-6 flex gap-4 sm:gap-6 items-center">
+                  <img src="${getOptimizedImageUrl(item.thumbnail, { width: 200 })}" alt="${escapeHTML(item.name)}" class="w-20 sm:w-24 h-24 sm:h-28 object-cover bg-cream border border-border/60 shrink-0" />
+                  <div class="flex-1 min-w-0">
+                    <a href="product.html?id=${encodeURIComponent(item.productId)}" class="text-sm sm:text-base font-medium text-ink hover:text-brand">${escapeHTML(item.name)}</a>
+                    <p class="text-xs text-muted mt-1">${escapeHTML(item.color)} · Size ${escapeHTML(item.size)}</p>
+                    <div class="mt-3 flex items-center gap-4">
+                      <div class="inline-flex items-center border border-border">
+                        <button type="button" data-minus="${escapeHTML(item.key)}" class="w-8 h-8 text-xs hover:bg-cream">−</button>
+                        <span class="w-8 text-center text-xs font-medium">${item.quantity}</span>
+                        <button type="button" data-plus="${escapeHTML(item.key)}" class="w-8 h-8 text-xs hover:bg-cream">+</button>
+                      </div>
+                      <button type="button" data-remove="${escapeHTML(item.key)}" class="text-xs text-muted hover:text-crimson underline">Remove</button>
+                    </div>
+                  </div>
+                  <div class="text-right">
+                    <p class="text-sm sm:text-base font-semibold text-ink">${formatINR(item.price * item.quantity)}</p>
+                    <p class="text-xs text-muted mt-0.5">${formatINR(item.price)} each</p>
+                  </div>
+                </div>
+              `
+              )
+              .join('')}
+          </div>
+
+          <aside class="lg:col-span-4 border border-border bg-surface p-6 space-y-5 self-start">
+            <h2 class="text-xs uppercase tracking-[0.16em] font-semibold text-ink border-b border-border pb-3">Order Summary</h2>
+
+            <form id="coupon-form" class="flex gap-2">
+              <input id="coupon-input" type="text" value="${escapeHTML(coupon?.code || '')}" placeholder="Coupon code" class="flex-1 border border-border bg-canvas px-3 py-2 text-xs uppercase focus:outline-none focus:border-brand" />
+              <button type="submit" class="btn-secondary px-4 py-2 text-xs uppercase tracking-wider font-medium">Apply</button>
+            </form>
+            ${
+              coupon
+                ? `<div class="flex items-center justify-between text-xs text-brand bg-brand/5 px-3 py-2 border border-brand/20">
+                    <span>Applied: <strong>${escapeHTML(coupon.code)}</strong></span>
+                    <button type="button" id="remove-coupon" class="underline">Remove</button>
+                  </div>`
+                : ''
+            }
+
+            <div class="space-y-2 text-sm border-t border-border pt-4">
+              <div class="flex justify-between text-muted"><span>Subtotal</span><span>${formatINR(subtotal)}</span></div>
+              ${discount > 0 ? `<div class="flex justify-between text-brand"><span>Discount</span><span>−${formatINR(discount)}</span></div>` : ''}
+              <div class="flex justify-between text-muted"><span>Estimated Shipping</span><span>${shipping === 0 ? 'Complimentary' : formatINR(shipping)}</span></div>
+              <div class="flex justify-between text-base font-semibold text-ink pt-3 border-t border-border"><span>Estimated Total</span><span>${formatINR(total)}</span></div>
+            </div>
+
+            <a href="checkout.html" class="btn-primary block w-full py-3.5 text-center text-xs uppercase tracking-[0.16em] font-semibold">Proceed to Checkout</a>
+          </aside>
+        </div>
+      `;
+
+      root.querySelectorAll('[data-minus]').forEach((b) => b.addEventListener('click', () => updateCartItemQuantity(b.dataset.minus, -1)));
+      root.querySelectorAll('[data-plus]').forEach((b) => b.addEventListener('click', () => updateCartItemQuantity(b.dataset.plus, 1)));
+      root.querySelectorAll('[data-remove]').forEach((b) => b.addEventListener('click', () => removeCartItem(b.dataset.remove)));
+
+      document.getElementById('remove-coupon')?.addEventListener('click', () => setAppliedCoupon(null));
+      document.getElementById('coupon-form')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        try {
+          await validateAndApplyCoupon(document.getElementById('coupon-input').value, subtotal);
+          showToast('Coupon applied', { type: 'success' });
+        } catch (err) {
+          showToast(err.message || 'Invalid coupon', { type: 'error' });
+        }
+      });
+    }
+
+    render();
+    window.addEventListener('abideever:cart-updated', render);
+  </script>
+</body>
+</html>

@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Checkout — AbideEver™</title>
+  <link rel="icon" href="assets/images/logo.png" type="image/png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="assets/js/tailwind-config.js"></script>
+  <link rel="stylesheet" href="assets/css/app.css" />
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+</head>
+<body>
+  <div id="site-header"></div>
+
+  <main class="max-w-5xl mx-auto w-full px-4 sm:px-6 py-10 sm:py-14">
+    <div class="mb-8 pb-5 border-b border-border flex items-center justify-between">
+      <div>
+        <p class="text-[11px] uppercase tracking-[0.18em] text-brand font-semibold">Secure D2C Checkout</p>
+        <h1 class="font-serif text-3xl sm:text-4xl font-semibold text-ink mt-1">Checkout</h1>
+      </div>
+      <a href="cart.html" class="text-xs uppercase tracking-wider text-muted hover:text-ink underline">Edit Bag</a>
+    </div>
+
+    <div id="checkout-empty" class="hidden border border-border bg-surface p-12 text-center">
+      <p class="font-serif text-2xl text-ink mb-2">Your bag is empty</p>
+      <a href="shop.html" class="btn-primary inline-block mt-4 px-7 py-3 text-xs uppercase tracking-[0.14em] font-semibold">Shop Collection</a>
+    </div>
+
+    <form id="checkout-form" class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <div class="lg:col-span-7 space-y-6">
+        <!-- Step 1: Customer Info -->
+        <section class="border border-border bg-surface p-6 space-y-4">
+          <h2 class="text-xs uppercase tracking-[0.16em] font-semibold text-ink">1. Customer Information</h2>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="sm:col-span-2">
+              <label class="block text-xs uppercase tracking-wider text-muted mb-1" for="chk-name">Full Name</label>
+              <input id="chk-name" type="text" required class="w-full border border-border bg-canvas px-3.5 py-2.5 text-sm focus:outline-none focus:border-brand" />
+            </div>
+            <div>
+              <label class="block text-xs uppercase tracking-wider text-muted mb-1" for="chk-phone">Phone (10-digit)</label>
+              <input id="chk-phone" type="tel" required pattern="[0-9+\-\s]{10,15}" class="w-full border border-border bg-canvas px-3.5 py-2.5 text-sm focus:outline-none focus:border-brand" placeholder="+91 98XXXXXXXX" />
+            </div>
+            <div>
+              <label class="block text-xs uppercase tracking-wider text-muted mb-1" for="chk-email">Email</label>
+              <input id="chk-email" type="email" required class="w-full border border-border bg-canvas px-3.5 py-2.5 text-sm focus:outline-none focus:border-brand" />
+            </div>
+          </div>
+        </section>
+
+        <!-- Step 2: Shipping Address -->
+        <section class="border border-border bg-surface p-6 space-y-4">
+          <h2 class="text-xs uppercase tracking-[0.16em] font-semibold text-ink">2. Shipping Address</h2>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="sm:col-span-2">
+              <label class="block text-xs uppercase tracking-wider text-muted mb-1" for="chk-address">Street Address / Apartment</label>
+              <input id="chk-address" type="text" required class="w-full border border-border bg-canvas px-3.5 py-2.5 text-sm focus:outline-none focus:border-brand" />
+            </div>
+            <div>
+              <label class="block text-xs uppercase tracking-wider text-muted mb-1" for="chk-city">City</label>
+              <input id="chk-city" type="text" required class="w-full border border-border bg-canvas px-3.5 py-2.5 text-sm focus:outline-none focus:border-brand" />
+            </div>
+            <div>
+              <label class="block text-xs uppercase tracking-wider text-muted mb-1" for="chk-state">State</label>
+              <input id="chk-state" type="text" required class="w-full border border-border bg-canvas px-3.5 py-2.5 text-sm focus:outline-none focus:border-brand" />
+            </div>
+            <div>
+              <label class="block text-xs uppercase tracking-wider text-muted mb-1" for="chk-pincode">Pincode</label>
+              <input id="chk-pincode" type="text" required pattern="[0-9]{6}" maxlength="6" class="w-full border border-border bg-canvas px-3.5 py-2.5 text-sm focus:outline-none focus:border-brand" placeholder="6-digit pincode" />
+            </div>
+            <div>
+              <label class="block text-xs uppercase tracking-wider text-muted mb-1" for="chk-country">Country</label>
+              <input id="chk-country" type="text" value="India" readonly class="w-full border border-border bg-cream px-3.5 py-2.5 text-sm text-muted" />
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Step 3 & 4: Order Summary & Payment -->
+      <aside class="lg:col-span-5 border border-border bg-surface p-6 space-y-5 self-start">
+        <h2 class="text-xs uppercase tracking-[0.16em] font-semibold text-ink border-b border-border pb-3">3. Order Summary</h2>
+        <div id="chk-items" class="space-y-3 max-h-64 overflow-y-auto pr-1"></div>
+        <div id="chk-totals" class="border-t border-border pt-4 space-y-2 text-sm"></div>
+
+        <div class="pt-2 space-y-3">
+          <p class="text-[11px] uppercase tracking-[0.14em] text-muted">4. Payment · Razorpay Secure</p>
+          <button type="submit" id="pay-btn" class="btn-primary w-full py-4 text-xs uppercase tracking-[0.16em] font-semibold">Pay Securely with Razorpay</button>
+          <p class="text-[11px] text-muted text-center">UPI, Cards, Netbanking & Wallets supported. Server-verified payment.</p>
+        </div>
+      </aside>
+    </form>
+  </main>
+
+  <div id="site-footer"></div>
+
+  <script type="module">
+    import { mountHeader } from './components/header.js';
+    import { mountFooter } from './components/footer.js';
+    import { mountCartDrawer } from './components/cart-drawer.js';
+    import { getCartTotals } from './assets/js/cart.js';
+    import { initiateRazorpayCheckout } from './assets/js/checkout.js';
+    import { onAuthChange } from './assets/js/auth.js';
+    import { getOptimizedImageUrl } from './assets/js/cloudinary.js';
+    import { escapeHTML, formatINR } from './assets/js/utils.js';
+    import { showToast } from './assets/js/ui.js';
+
+    mountHeader();
+    mountFooter();
+    mountCartDrawer();
+
+    onAuthChange((user) => {
+      if (user) {
+        if (!document.getElementById('chk-name').value) document.getElementById('chk-name').value = user.displayName || '';
+        if (!document.getElementById('chk-email').value) document.getElementById('chk-email').value = user.email || '';
+      }
+    });
+
+    function renderSummary() {
+      const { items, subtotal, discount, shipping, total } = getCartTotals();
+      if (!items.length) {
+        document.getElementById('checkout-form').classList.add('hidden');
+        document.getElementById('checkout-empty').classList.remove('hidden');
+        return;
+      }
+
+      document.getElementById('chk-items').innerHTML = items
+        .map(
+          (i) => `
+          <div class="flex items-center gap-3 text-xs">
+            <img src="${getOptimizedImageUrl(i.thumbnail, { width: 120 })}" alt="${escapeHTML(i.name)}" class="w-12 h-14 object-cover bg-cream border border-border/60 shrink-0" />
+            <div class="flex-1 min-w-0">
+              <p class="font-medium text-ink truncate">${escapeHTML(i.name)}</p>
+              <p class="text-muted">${escapeHTML(i.color)} · ${escapeHTML(i.size)} × ${i.quantity}</p>
+            </div>
+            <span class="font-semibold text-ink">${formatINR(i.price * i.quantity)}</span>
+          </div>
+        `
+        )
+        .join('');
+
+      document.getElementById('chk-totals').innerHTML = `
+        <div class="flex justify-between text-muted"><span>Subtotal</span><span>${formatINR(subtotal)}</span></div>
+        ${discount > 0 ? `<div class="flex justify-between text-brand"><span>Discount</span><span>−${formatINR(discount)}</span></div>` : ''}
+        <div class="flex justify-between text-muted"><span>Shipping</span><span>${shipping === 0 ? 'Complimentary' : formatINR(shipping)}</span></div>
+        <div class="flex justify-between text-base font-semibold text-ink pt-2 border-t border-border"><span>Total</span><span>${formatINR(total)}</span></div>
+      `;
+    }
+
+    renderSummary();
+
+    document.getElementById('checkout-form')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('pay-btn');
+      btn.disabled = true;
+      btn.textContent = 'Processing...';
+
+      try {
+        const result = await initiateRazorpayCheckout({
+          customer: {
+            name: document.getElementById('chk-name').value.trim(),
+            phone: document.getElementById('chk-phone').value.trim(),
+            email: document.getElementById('chk-email').value.trim(),
+          },
+          shippingAddress: {
+            address: document.getElementById('chk-address').value.trim(),
+            city: document.getElementById('chk-city').value.trim(),
+            state: document.getElementById('chk-state').value.trim(),
+            pincode: document.getElementById('chk-pincode').value.trim(),
+            country: document.getElementById('chk-country').value.trim(),
+          },
+        });
+        window.location.href = `order-success.html?orderId=${encodeURIComponent(result.orderId)}`;
+      } catch (err) {
+        showToast(err.message || 'Payment could not be completed', { type: 'error' });
+        btn.disabled = false;
+        btn.textContent = 'Pay Securely with Razorpay';
+      }
+    });
+  </script>
+</body>
+</html>

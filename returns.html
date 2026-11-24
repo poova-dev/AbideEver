@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Returns & Exchanges — AbideEver™</title>
+  <link rel="icon" href="assets/images/logo.png" type="image/png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="assets/js/tailwind-config.js"></script>
+  <link rel="stylesheet" href="assets/css/app.css" />
+</head>
+<body>
+  <div id="site-header"></div>
+  <main class="max-w-3xl mx-auto w-full px-4 sm:px-6 py-12 sm:py-16 space-y-6">
+    <p class="text-[11px] uppercase tracking-[0.18em] text-brand font-semibold">Policies</p>
+    <h1 class="font-serif text-3xl sm:text-4xl font-semibold text-ink">Returns & Exchanges</h1>
+    <div class="border border-border bg-surface p-6 sm:p-8 space-y-5 text-sm text-muted leading-relaxed">
+      <div>
+        <h2 class="text-xs uppercase tracking-wider font-semibold text-ink mb-1.5">7-Day Return & Exchange Window</h2>
+        <p>You may request an exchange or return within 7 days of delivery. Items must be unworn, unwashed, and in original packaging with all tags attached.</p>
+      </div>
+      <div>
+        <h2 class="text-xs uppercase tracking-wider font-semibold text-ink mb-1.5">How to Initiate</h2>
+        <p>Write to <a href="mailto:care@abideever.com" class="text-brand underline">care@abideever.com</a> or use our <a href="contact.html" class="text-brand underline">Contact</a> form with your Order ID and reason for return/exchange.</p>
+      </div>
+      <div>
+        <h2 class="text-xs uppercase tracking-wider font-semibold text-ink mb-1.5">Refunds</h2>
+        <p>Approved refunds are processed back to the original payment method within 5–7 business days after quality inspection.</p>
+      </div>
+    </div>
+  </main>
+  <div id="site-footer"></div>
+  <script type="module">
+    import { mountHeader } from './components/header.js';
+    import { mountFooter } from './components/footer.js';
+    import { mountCartDrawer } from './components/cart-drawer.js';
+    mountHeader();
+    mountFooter();
+    mountCartDrawer();
+  </script>
+</body>
+</html>

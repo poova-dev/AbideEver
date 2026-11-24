@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Orders — AbideEver™</title>
+  <link rel="icon" href="../assets/images/logo.png" type="image/png" />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="../assets/js/tailwind-config.js"></script>
+  <link rel="stylesheet" href="../assets/css/app.css" />
+</head>
+<body class="bg-canvas min-h-screen">
+  <div id="admin-auth-gate" class="hidden min-h-screen flex items-center justify-center p-4"></div>
+
+  <div id="admin-main-content" class="hidden min-h-screen flex flex-col lg:flex-row">
+    <aside id="admin-sidebar" class="w-full lg:w-64 bg-brand-deep text-cream flex flex-col shrink-0"></aside>
+
+    <main class="flex-1 p-6 sm:p-8 lg:p-10 space-y-8 overflow-x-hidden">
+      <div class="border-b border-border pb-5">
+        <p class="text-[11px] uppercase tracking-[0.18em] text-brand font-semibold">Fulfillment</p>
+        <h1 class="font-serif text-3xl font-semibold text-ink mt-1">Orders</h1>
+      </div>
+
+      <div id="admin-orders-table" class="border border-border bg-surface overflow-x-auto"></div>
+    </main>
+  </div>
+
+  <script type="module">
+    import { mountAdminShell, requireAdminAccess } from '../assets/js/admin.js';
+    import { escapeHTML, formatDate, formatINR } from '../assets/js/utils.js';
+    import { showToast } from '../assets/js/ui.js';
+
+    mountAdminShell('orders');
+    const statuses = ['pending', 'confirmed', 'processing', 'packed', 'shipped', 'out_for_delivery', 'delivered', 'cancelled', 'returned'];
+
+    requireAdminAccess(async (fb) => {
+      const { collection, getDocs, query, orderBy, doc, updateDoc, serverTimestamp } = fb.fsMod;
+      const wrap = document.getElementById('admin-orders-table');
+
+      async function loadOrders() {
+        const snap = await getDocs(query(collection(fb.db, 'orders'), orderBy('createdAt', 'desc')));
+        const orders = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+
+        wrap.innerHTML = orders.length
+          ? `<table class="w-full text-left text-xs">
+              <thead class="border-b border-border bg-canvas text-muted uppercase tracking-wider">
+                <tr>
+                  <th class="p-3.5">Order ID</th>
+                  <th class="p-3.5">Customer</th>
+                  <th class="p-3.5">Payment</th>
+                  <th class="p-3.5">Total</th>
+                  <th class="p-3.5">Status</th>
+                  <th class="p-3.5">Tracking #</th>
+                  <th class="p-3.5 text-right">Save</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-border">
+                ${orders
+                  .map(
+                    (o) => `
+                    <tr data-order-row="${escapeHTML(o.id)}">
+                      <td class="p-3.5 font-medium">${escapeHTML(o.id)}<div class="text-[11px] text-muted">${formatDate(o.createdAt)}</div></td>
+                      <td class="p-3.5">${escapeHTML(o.customer?.name || '—')}<div class="text-[11px] text-muted">${escapeHTML(o.customer?.phone || '')}</div></td>
+                      <td class="p-3.5 uppercase">${escapeHTML(o.paymentStatus || 'pending')}</td>
+                      <td class="p-3.5 font-semibold">${formatINR(o.total)}</td>
+                      <td class="p-3.5">
+                        <select data-status class="border border-border bg-canvas px-2 py-1.5 text-xs">
+                          ${statuses.map((s) => `<option value="${s}" ${o.orderStatus === s ? 'selected' : ''}>${s}</option>`).join('')}
+                        </select>
+                      </td>
+                      <td class="p-3.5">
+                        <input data-tracking type="text" value="${escapeHTML(o.trackingNumber || '')}" placeholder="AWB / Tracking" class="border border-border bg-canvas px-2.5 py-1.5 text-xs w-36" />
+                      </td>
+                      <td class="p-3.5 text-right">
+                        <button type="button" data-save-order class="btn-primary px-3 py-1.5 text-[11px] uppercase tracking-wider">Update</button>
+                      </td>
+                    </tr>
+                  `
+                  )
+                  .join('')}
+              </tbody>
+            </table>`
+          : '<p class="p-8 text-sm text-muted text-center">No orders found.</p>';
+
+        wrap.querySelectorAll('[data-save-order]').forEach((btn) => {
+          btn.addEventListener('click', async () => {
+            const row = btn.closest('[data-order-row]');
+            const orderId = row.dataset.orderRow;
+            const orderStatus = row.querySelector('[data-status]').value;
+            const trackingNumber = row.querySelector('[data-tracking]').value.trim();
+
+            await updateDoc(doc(fb.db, 'orders', orderId), {
+              orderStatus,
+              trackingNumber,
+              updatedAt: serverTimestamp(),
+            });
+            showToast(`Order ${orderId} updated`, { type: 'success' });
+          });
+        });
+      }
+
+      loadOrders();
+    });
+  </script>
+</body>
+</html>

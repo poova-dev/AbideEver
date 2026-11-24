@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Product — AbideEver™</title>
+  <meta name="description" content="AbideEver™ — Wear Your Values. Live Your Way." />
+  <link rel="canonical" href="https://abideever.com/product.html" />
+  <meta property="og:title" content="AbideEver™" />
+  <meta property="og:image" content="assets/images/product-99-front.jpg" />
+  <link rel="icon" href="assets/images/logo.png" type="image/png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="assets/js/tailwind-config.js"></script>
+  <link rel="stylesheet" href="assets/css/app.css" />
+  <script id="product-jsonld" type="application/ld+json">{}</script>
+</head>
+<body>
+  <div id="site-header"></div>
+
+  <main class="max-w-[1440px] mx-auto w-full px-4 sm:px-6 lg:px-10 py-8 sm:py-12">
+    <nav aria-label="Breadcrumb" class="text-xs text-muted mb-6 flex items-center gap-2">
+      <a href="index.html" class="hover:text-ink">Home</a>
+      <span>/</span>
+      <a href="shop.html" class="hover:text-ink">Shop</a>
+      <span>/</span>
+      <span id="breadcrumb-name" class="text-ink truncate">Loading...</span>
+    </nav>
+
+    <div id="product-detail-root" class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
+      <!-- Skeleton -->
+      <div class="lg:col-span-7 aspect-[3/4] skeleton"></div>
+      <div class="lg:col-span-5 space-y-4">
+        <div class="h-8 skeleton w-3/4"></div>
+        <div class="h-6 skeleton w-1/4"></div>
+        <div class="h-24 skeleton w-full"></div>
+      </div>
+    </div>
+
+    <!-- Verified Reviews Section -->
+    <section id="product-reviews-section" class="mt-16 pt-12 border-t border-border hidden">
+      <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
+        <div>
+          <p class="text-[11px] uppercase tracking-[0.18em] text-brand font-semibold">Verified Purchases</p>
+          <h2 class="font-serif text-2xl sm:text-3xl font-semibold text-ink mt-1">Customer Reviews</h2>
+        </div>
+        <button type="button" id="toggle-review-form" class="btn-secondary px-5 py-2.5 text-xs uppercase tracking-[0.14em] font-medium self-start">Write a Review</button>
+      </div>
+
+      <form id="review-form" class="hidden border border-border bg-surface p-6 mb-8 max-w-xl space-y-4">
+        <p class="text-xs text-muted">Reviews are enabled for customers who have purchased this product.</p>
+        <div>
+          <label class="block text-xs uppercase tracking-wider text-muted mb-1" for="review-rating">Rating</label>
+          <select id="review-rating" class="border border-border bg-canvas px-3 py-2 text-sm">
+            <option value="5">5 — Excellent</option>
+            <option value="4">4 — Good</option>
+            <option value="3">3 — Average</option>
+            <option value="2">2 — Fair</option>
+            <option value="1">1 — Poor</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs uppercase tracking-wider text-muted mb-1" for="review-title">Title</label>
+          <input id="review-title" type="text" required class="w-full border border-border bg-canvas px-3.5 py-2 text-sm" placeholder="Headline of your review" />
+        </div>
+        <div>
+          <label class="block text-xs uppercase tracking-wider text-muted mb-1" for="review-comment">Comment</label>
+          <textarea id="review-comment" rows="3" required class="w-full border border-border bg-canvas px-3.5 py-2 text-sm" placeholder="Share fit, fabric, and quality feedback"></textarea>
+        </div>
+        <button type="submit" class="btn-primary px-6 py-2.5 text-xs uppercase tracking-[0.14em] font-semibold">Submit Review</button>
+      </form>
+
+      <div id="reviews-list" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+    </section>
+  </main>
+
+  <!-- Size Chart Modal -->
+  <div id="size-chart-modal" class="modal-backdrop fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" aria-hidden="true">
+    <div class="modal-panel bg-surface w-full max-w-xl border border-border p-6 relative max-h-[90vh] overflow-y-auto">
+      <button type="button" id="sc-close" aria-label="Close size chart" class="absolute top-4 right-4 text-muted hover:text-ink">✕</button>
+      <p class="text-[11px] uppercase tracking-[0.16em] text-brand font-semibold mb-1">Measurements</p>
+      <h3 class="font-serif text-2xl font-semibold text-ink mb-4">Size Chart</h3>
+      <div id="size-chart-body"></div>
+    </div>
+  </div>
+
+  <div id="site-footer"></div>
+
+  <script type="module">
+    import { mountHeader } from './components/header.js';
+    import { mountFooter } from './components/footer.js';
+    import { mountCartDrawer } from './components/cart-drawer.js';
+    import { fetchProductById, getProductImages, getVariantStock, OVERSIZED_SIZE_CHART } from './assets/js/products.js';
+    import { getOptimizedImageUrl } from './assets/js/cloudinary.js';
+    import { addToCart } from './assets/js/cart.js';
+    import { getCurrentUser } from './assets/js/auth.js';
+    import { getFirebase } from './assets/js/firebase.js';
+    import { escapeHTML, formatDate, formatINR, getQueryParam, getStockStatus } from './assets/js/utils.js';
+    import { flyToBag, showToast } from './assets/js/ui.js';
+
+    mountHeader();
+    mountFooter();
+    mountCartDrawer();
+
+    const root = document.getElementById('product-detail-root');
+    const id = getQueryParam('id') || 'he-left-the-99';
+
+    async function loadProduct() {
+      const product = await fetchProductById(id);
+      if (!product) {
+        root.innerHTML = `
+          <div class="col-span-full py-20 text-center border border-border bg-surface">
+            <h1 class="font-serif text-3xl text-ink mb-2">Product Unavailable</h1>
+            <p class="text-sm text-muted mb-6">This item could not be found or is no longer available.</p>
+            <a href="shop.html" class="btn-primary inline-block px-7 py-3 text-xs uppercase tracking-[0.14em] font-semibold">Return to Shop</a>
+          </div>
+        `;
+        return;
+      }
+
+      // SEO & Structured Data
+      document.title = `${product.name} — AbideEver™`;
+      document.getElementById('breadcrumb-name').textContent = product.name;
+      const canonical = document.querySelector('link[rel="canonical"]');
+      if (canonical) canonical.href = window.location.href;
+      const metaDesc = document.querySelector('meta[name="description"]');
+      if (metaDesc) metaDesc.content = product.description || 'AbideEver™ Everyday Wear';
+
+      const images = getProductImages(product);
+      const colors = product.colors?.length ? product.colors : [{ name: 'Black', hex: '#111111' }];
+      const sizes = product.sizes?.length ? product.sizes : ['S', 'M', 'L', 'XL', 'XXL'];
+
+      document.getElementById('product-jsonld').textContent = JSON.stringify({
+        '@context': 'https://schema.org/',
+        '@type': 'Product',
+        name: product.name,
+        image: images.map((img) => getOptimizedImageUrl(img, { width: 1000 })),
+        description: product.description || '',
+        sku: product.sku || product.id,
+        brand: { '@type': 'Brand', name: 'AbideEver™' },
+        offers: {
+          '@type': 'Offer',
+          priceCurrency: 'INR',
+          price: Number(product.price || 0),
+          availability: 'https://schema.org/InStock',
+          url: window.location.href,
+        },
+      });
+
+      let selectedColor = colors[0].name;
+      let selectedSize = sizes.find((s) => getVariantStock(product, selectedColor, s) > 0) || sizes[0];
+      let quantity = 1;
+
+      root.innerHTML = `
+        <!-- LEFT: Gallery -->
+        <div class="lg:col-span-7 space-y-3">
+          <div class="bg-cream border border-border/60 aspect-[4/5] overflow-hidden">
+            <img id="pdp-main-img" src="${getOptimizedImageUrl(images[0] || product.thumbnail, { width: 1100 })}" alt="${escapeHTML(product.name)}" class="w-full h-full object-cover" />
+          </div>
+          <div class="grid grid-cols-4 gap-3">
+            ${images
+              .slice(0, 4)
+              .map(
+                (img, i) => `
+                <button type="button" data-thumb="${getOptimizedImageUrl(img, { width: 1100 })}" class="aspect-square border ${i === 0 ? 'border-ink' : 'border-border'} bg-cream overflow-hidden hover:border-ink transition-colors">
+                  <img src="${getOptimizedImageUrl(img, { width: 300 })}" alt="${escapeHTML(product.name)} view ${i + 1}" class="w-full h-full object-cover" />
+                </button>
+              `
+              )
+              .join('')}
+          </div>
+        </div>
+
+        <!-- RIGHT: Info & Purchase -->
+        <div class="lg:col-span-5 space-y-6">
+          <div class="border-b border-border pb-5">
+            <p class="text-[11px] uppercase tracking-[0.18em] text-brand font-semibold">${escapeHTML(product.collection || product.category || 'AbideEver')}</p>
+            <h1 class="font-serif text-3xl sm:text-4xl font-semibold text-ink mt-1.5 leading-tight">${escapeHTML(product.name)}</h1>
+            <div class="flex items-center gap-3 mt-3">
+              <span class="text-xl font-semibold text-ink">${formatINR(product.price)}</span>
+              ${
+                product.compareAtPrice && Number(product.compareAtPrice) > Number(product.price)
+                  ? `<span class="text-sm text-muted line-through">${formatINR(product.compareAtPrice)}</span>`
+                  : ''
+              }
+              <span class="text-xs text-muted">Inclusive of all taxes</span>
+            </div>
+            <p class="text-sm text-muted mt-4 leading-relaxed">${escapeHTML(product.description || '')}</p>
+          </div>
+
+          <!-- Color -->
+          <div>
+            <p class="text-xs uppercase tracking-[0.12em] text-muted mb-2.5">Color: <span id="pdp-color-label" class="text-ink font-semibold">${escapeHTML(selectedColor)}</span></p>
+            <div class="flex gap-2.5">
+              ${colors
+                .map(
+                  (c, idx) => `
+                  <button type="button" data-pdp-color="${escapeHTML(c.name)}" class="w-8 h-8 rounded-full border ${idx === 0 ? 'ring-2 ring-brand ring-offset-2 border-ink' : 'border-border'}" style="background-color: ${escapeHTML(c.hex || '#111111')}" aria-label="${escapeHTML(c.name)}"></button>
+                `
+                )
+                .join('')}
+            </div>
+          </div>
+
+          <!-- Size & Chart -->
+          <div>
+            <div class="flex items-center justify-between mb-2.5">
+              <div class="flex items-center gap-2.5">
+                <span class="text-xs uppercase tracking-[0.12em] text-muted">Size</span>
+                <span id="pdp-stock-badge" class="text-[10px] uppercase tracking-[0.1em] px-2 py-0.5 border"></span>
+              </div>
+              <button type="button" id="open-size-chart" class="text-xs uppercase tracking-[0.12em] text-ink underline underline-offset-4 hover:text-brand">Size Chart</button>
+            </div>
+            <div id="pdp-sizes" class="grid grid-cols-5 gap-2"></div>
+          </div>
+
+          <!-- Quantity & Actions -->
+          <div class="space-y-3 pt-1">
+            <div class="flex items-center gap-4">
+              <div class="inline-flex items-center border border-border bg-surface">
+                <button type="button" id="pdp-qty-minus" class="w-10 h-11 text-sm hover:bg-cream">−</button>
+                <span id="pdp-qty-val" class="w-10 text-center text-sm font-medium">1</span>
+                <button type="button" id="pdp-qty-plus" class="w-10 h-11 text-sm hover:bg-cream">+</button>
+              </div>
+              <button type="button" id="pdp-add-to-cart" class="btn-primary flex-1 h-11 text-xs uppercase tracking-[0.16em] font-semibold">Add to Cart</button>
+            </div>
+            <button type="button" id="pdp-buy-now" class="btn-secondary w-full h-11 text-xs uppercase tracking-[0.16em] font-semibold">Buy Now</button>
+          </div>
+
+          <!-- Details Accordions -->
+          <div class="border-t border-border divide-y divide-border pt-2">
+            <details open class="py-3.5 group">
+              <summary class="flex items-center justify-between cursor-pointer text-xs uppercase tracking-[0.14em] font-semibold text-ink">
+                <span>Product Details & Material</span>
+                <span class="text-muted group-open:rotate-45 transition-transform">+</span>
+              </summary>
+              <div class="pt-3 text-xs text-muted space-y-1.5 leading-relaxed">
+                <p><strong class="text-ink">Material:</strong> ${escapeHTML(product.material || 'Specified in Admin')}</p>
+                <p><strong class="text-ink">Fit:</strong> ${escapeHTML(product.fit || 'Relaxed Fit')}</p>
+                <p><strong class="text-ink">Care:</strong> ${escapeHTML(product.care || 'Machine wash cold inside out.')}</p>
+                <p><strong class="text-ink">SKU:</strong> ${escapeHTML(product.sku || product.id)}</p>
+              </div>
+            </details>
+
+            <details class="py-3.5 group">
+              <summary class="flex items-center justify-between cursor-pointer text-xs uppercase tracking-[0.14em] font-semibold text-ink">
+                <span>Shipping Information</span>
+                <span class="text-muted group-open:rotate-45 transition-transform">+</span>
+              </summary>
+              <p class="pt-3 text-xs text-muted leading-relaxed">
+                Dispatched within 24–48 business hours. Complimentary shipping across India on orders above ₹1,999.
+              </p>
+            </details>
+
+            <details class="py-3.5 group">
+              <summary class="flex items-center justify-between cursor-pointer text-xs uppercase tracking-[0.14em] font-semibold text-ink">
+                <span>Returns & Exchanges</span>
+                <span class="text-muted group-open:rotate-45 transition-transform">+</span>
+              </summary>
+              <p class="pt-3 text-xs text-muted leading-relaxed">
+                7-day easy exchange or return for unworn items with original tags intact. <a href="returns.html" class="underline text-ink">Read policy</a>.
+              </p>
+            </details>
+          </div>
+        </div>
+      `;
+
+      // Thumbnails
+      root.querySelectorAll('[data-thumb]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          document.getElementById('pdp-main-img').src = btn.dataset.thumb;
+          root.querySelectorAll('[data-thumb]').forEach((b) => b.classList.remove('border-ink'));
+          btn.classList.add('border-ink');
+        });
+      });
+
+      const syncVariant = () => {
+        const stock = getVariantStock(product, selectedColor, selectedSize);
+        const status = getStockStatus(stock);
+        const badge = document.getElementById('pdp-stock-badge');
+        badge.textContent = status.label;
+        badge.className = `text-[10px] uppercase tracking-[0.1em] px-2 py-0.5 border ${status.className}`;
+
+        const sizesWrap = document.getElementById('pdp-sizes');
+        sizesWrap.innerHTML = sizes
+          .map((sz) => {
+            const sStock = getVariantStock(product, selectedColor, sz);
+            const active = sz === selectedSize;
+            return `
+              <button type="button" data-pdp-size="${escapeHTML(sz)}" class="py-2.5 text-xs font-medium border transition-colors ${
+              active ? 'bg-ink text-white border-ink' : 'bg-surface text-ink border-border hover:border-ink'
+            } ${sStock <= 0 ? 'opacity-40 line-through' : ''}">${escapeHTML(sz)}</button>
+            `;
+          })
+          .join('');
+
+        sizesWrap.querySelectorAll('[data-pdp-size]').forEach((b) => {
+          b.addEventListener('click', () => {
+            selectedSize = b.dataset.pdpSize;
+            syncVariant();
+          });
+        });
+
+        const addBtn = document.getElementById('pdp-add-to-cart');
+        const buyBtn = document.getElementById('pdp-buy-now');
+        addBtn.disabled = stock <= 0;
+        buyBtn.disabled = stock <= 0;
+        addBtn.textContent = stock <= 0 ? 'Out of Stock' : 'Add to Cart';
+      };
+
+      root.querySelectorAll('[data-pdp-color]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          selectedColor = btn.dataset.pdpColor;
+          document.getElementById('pdp-color-label').textContent = selectedColor;
+          root.querySelectorAll('[data-pdp-color]').forEach((b) => b.classList.remove('ring-2', 'ring-brand', 'ring-offset-2', 'border-ink'));
+          btn.classList.add('ring-2', 'ring-brand', 'ring-offset-2', 'border-ink');
+          syncVariant();
+        });
+      });
+
+      document.getElementById('pdp-qty-minus')?.addEventListener('click', () => {
+        quantity = Math.max(1, quantity - 1);
+        document.getElementById('pdp-qty-val').textContent = String(quantity);
+      });
+      document.getElementById('pdp-qty-plus')?.addEventListener('click', () => {
+        const max = Math.max(1, getVariantStock(product, selectedColor, selectedSize));
+        quantity = Math.min(max, quantity + 1);
+        document.getElementById('pdp-qty-val').textContent = String(quantity);
+      });
+
+      document.getElementById('pdp-add-to-cart')?.addEventListener('click', () => {
+        const stock = getVariantStock(product, selectedColor, selectedSize);
+        if (stock <= 0) return showToast('Selected variant is out of stock', { type: 'error' });
+        flyToBag(document.getElementById('pdp-main-img'));
+        addToCart(product, { size: selectedSize, color: selectedColor, quantity, maxStock: stock });
+      });
+
+      document.getElementById('pdp-buy-now')?.addEventListener('click', () => {
+        const stock = getVariantStock(product, selectedColor, selectedSize);
+        if (stock <= 0) return showToast('Selected variant is out of stock', { type: 'error' });
+        addToCart(product, { size: selectedSize, color: selectedColor, quantity, maxStock: stock });
+        window.location.href = 'checkout.html';
+      });
+
+      // Size chart modal
+      const scModal = document.getElementById('size-chart-modal');
+      const scBody = document.getElementById('size-chart-body');
+      const chart = product.sizeChart || OVERSIZED_SIZE_CHART;
+      scBody.innerHTML = `
+        <p class="text-xs text-muted mb-3">${escapeHTML(chart.fitLabel || '')} · All measurements in ${escapeHTML(chart.unit || 'inches')}</p>
+        <div class="overflow-x-auto border border-border">
+          <table class="w-full text-xs text-left">
+            <thead class="bg-ink text-white uppercase tracking-wider">
+              <tr>
+                <th class="px-3 py-2.5">Size</th>
+                <th class="px-3 py-2.5">Chest</th>
+                <th class="px-3 py-2.5">Length</th>
+                <th class="px-3 py-2.5">Shoulder</th>
+                <th class="px-3 py-2.5">Sleeve</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-border">
+              ${(chart.rows || [])
+                .map(
+                  (r) => `
+                  <tr>
+                    <td class="px-3 py-2.5 font-semibold">${escapeHTML(r.size)}</td>
+                    <td class="px-3 py-2.5">${escapeHTML(r.chest)}</td>
+                    <td class="px-3 py-2.5">${escapeHTML(r.length)}</td>
+                    <td class="px-3 py-2.5">${escapeHTML(r.shoulder)}</td>
+                    <td class="px-3 py-2.5">${escapeHTML(r.sleeve)}</td>
+                  </tr>
+                `
+                )
+                .join('')}
+            </tbody>
+          </table>
+        </div>
+        ${chart.image ? `<img src="${chart.image}" alt="Size chart diagram" class="mt-4 w-full border border-border" />` : ''}
+      `;
+
+      document.getElementById('open-size-chart')?.addEventListener('click', () => {
+        scModal.classList.add('is-open');
+        scModal.setAttribute('aria-hidden', 'false');
+      });
+      document.getElementById('sc-close')?.addEventListener('click', () => {
+        scModal.classList.remove('is-open');
+        scModal.setAttribute('aria-hidden', 'true');
+      });
+      scModal?.addEventListener('click', (e) => {
+        if (e.target === scModal) scModal.classList.remove('is-open');
+      });
+
+      syncVariant();
+      loadReviews(product.id);
+    }
+
+    async function loadReviews(productId) {
+      const section = document.getElementById('product-reviews-section');
+      const listEl = document.getElementById('reviews-list');
+      section.classList.remove('hidden');
+
+      const fb = await getFirebase();
+      if (!fb.configured) {
+        listEl.innerHTML = '<p class="text-xs text-muted">No verified reviews yet.</p>';
+      } else {
+        const { collection, query, where, getDocs } = fb.fsMod;
+        const q = query(collection(fb.db, 'reviews'), where('productId', '==', productId), where('approved', '==', true));
+        const snap = await getDocs(q);
+        if (snap.empty) {
+          listEl.innerHTML = '<p class="text-xs text-muted">No verified reviews yet.</p>';
+        } else {
+          listEl.innerHTML = snap.docs
+            .map((d) => {
+              const r = d.data();
+              return `
+                <div class="border border-border bg-surface p-5 space-y-2">
+                  <div class="flex items-center justify-between text-xs">
+                    <span class="font-semibold text-ink">${'★'.repeat(Number(r.rating || 5))}</span>
+                    <span class="text-muted">${formatDate(r.createdAt)}</span>
+                  </div>
+                  <p class="text-sm font-medium text-ink">${escapeHTML(r.title || '')}</p>
+                  <p class="text-xs text-muted leading-relaxed">${escapeHTML(r.comment || '')}</p>
+                  <p class="text-[11px] uppercase tracking-wider text-brand">Verified Purchase · ${escapeHTML(r.customerName || 'Customer')}</p>
+                </div>
+              `;
+            })
+            .join('');
+        }
+      }
+
+      document.getElementById('toggle-review-form')?.addEventListener('click', () => {
+        document.getElementById('review-form').classList.toggle('hidden');
+      });
+
+      document.getElementById('review-form')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const user = getCurrentUser();
+        if (!user) return showToast('Please sign in to submit a verified review', { type: 'error' });
+        const fbConn = await getFirebase();
+        if (!fbConn.configured) return showToast('Connect Firebase to submit reviews', { type: 'error' });
+
+        // Verify user has purchased this product
+        const { collection, query, where, getDocs, addDoc, serverTimestamp } = fbConn.fsMod;
+        const ordersSnap = await getDocs(query(collection(fbConn.db, 'orders'), where('userId', '==', user.uid), where('paymentStatus', '==', 'paid')));
+        const purchased = ordersSnap.docs.some((d) => (d.data().items || []).some((i) => i.productId === productId));
+        if (!purchased) {
+          return showToast('Only verified buyers of this product can post a review', { type: 'error' });
+        }
+
+        await addDoc(collection(fbConn.db, 'reviews'), {
+          productId,
+          userId: user.uid,
+          customerName: user.displayName || 'Customer',
+          rating: Number(document.getElementById('review-rating').value),
+          title: document.getElementById('review-title').value.trim(),
+          comment: document.getElementById('review-comment').value.trim(),
+          verified: true,
+          approved: false,
+          createdAt: serverTimestamp(),
+        });
+        e.target.reset();
+        e.target.classList.add('hidden');
+        showToast('Review submitted for moderation', { type: 'success' });
+      });
+    }
+
+    loadProduct();
+  </script>
+</body>
+</html>

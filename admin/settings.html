@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Settings — AbideEver™</title>
+  <link rel="icon" href="../assets/images/logo.png" type="image/png" />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="../assets/js/tailwind-config.js"></script>
+  <link rel="stylesheet" href="../assets/css/app.css" />
+</head>
+<body class="bg-canvas min-h-screen">
+  <div id="admin-auth-gate" class="hidden min-h-screen flex items-center justify-center p-4"></div>
+
+  <div id="admin-main-content" class="hidden min-h-screen flex flex-col lg:flex-row">
+    <aside id="admin-sidebar" class="w-full lg:w-64 bg-brand-deep text-cream flex flex-col shrink-0"></aside>
+
+    <main class="flex-1 p-6 sm:p-8 lg:p-10 space-y-8 overflow-x-hidden">
+      <div class="border-b border-border pb-5">
+        <p class="text-[11px] uppercase tracking-[0.18em] text-brand font-semibold">Configuration</p>
+        <h1 class="font-serif text-3xl font-semibold text-ink mt-1">Store Settings</h1>
+      </div>
+
+      <form id="settings-form" class="border border-border bg-surface p-6 max-w-2xl space-y-4 text-xs">
+        <div>
+          <label class="block uppercase tracking-wider text-muted mb-1">Announcement Bar Text</label>
+          <input id="st-announcement" type="text" class="w-full border border-border bg-canvas px-3 py-2 text-sm" />
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block uppercase tracking-wider text-muted mb-1">Free Shipping Threshold (₹)</label>
+            <input id="st-free-ship" type="number" class="w-full border border-border bg-canvas px-3 py-2 text-sm" />
+          </div>
+          <div>
+            <label class="block uppercase tracking-wider text-muted mb-1">Standard Shipping Fee (₹)</label>
+            <input id="st-ship-fee" type="number" class="w-full border border-border bg-canvas px-3 py-2 text-sm" />
+          </div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block uppercase tracking-wider text-muted mb-1">Support Email</label>
+            <input id="st-email" type="email" class="w-full border border-border bg-canvas px-3 py-2 text-sm" />
+          </div>
+          <div>
+            <label class="block uppercase tracking-wider text-muted mb-1">Support Phone</label>
+            <input id="st-phone" type="text" class="w-full border border-border bg-canvas px-3 py-2 text-sm" />
+          </div>
+        </div>
+        <button type="submit" class="btn-primary px-7 py-3 text-xs uppercase tracking-[0.14em] font-semibold">Save Settings</button>
+      </form>
+    </main>
+  </div>
+
+  <script type="module">
+    import { mountAdminShell, requireAdminAccess } from '../assets/js/admin.js';
+    import { showToast } from '../assets/js/ui.js';
+
+    mountAdminShell('settings');
+
+    requireAdminAccess(async (fb) => {
+      const { doc, getDoc, setDoc, serverTimestamp } = fb.fsMod;
+      const ref = doc(fb.db, 'settings', 'storefront');
+      const snap = await getDoc(ref);
+      if (snap.exists()) {
+        const d = snap.data();
+        document.getElementById('st-announcement').value = d.announcement || '';
+        document.getElementById('st-free-ship').value = d.freeShippingThreshold ?? 1999;
+        document.getElementById('st-ship-fee').value = d.standardShippingFee ?? 99;
+        document.getElementById('st-email').value = d.supportEmail || '';
+        document.getElementById('st-phone').value = d.supportPhone || '';
+      }
+
+      document.getElementById('settings-form')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        await setDoc(
+          ref,
+          {
+            announcement: document.getElementById('st-announcement').value.trim(),
+            freeShippingThreshold: Number(document.getElementById('st-free-ship').value || 1999),
+            standardShippingFee: Number(document.getElementById('st-ship-fee').value || 99),
+            supportEmail: document.getElementById('st-email').value.trim(),
+            supportPhone: document.getElementById('st-phone').value.trim(),
+            updatedAt: serverTimestamp(),
+          },
+          { merge: true }
+        );
+        showToast('Settings saved', { type: 'success' });
+      });
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Products — AbideEver™</title>
+  <link rel="icon" href="../assets/images/logo.png" type="image/png" />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="../assets/js/tailwind-config.js"></script>
+  <link rel="stylesheet" href="../assets/css/app.css" />
+</head>
+<body class="bg-canvas min-h-screen">
+  <div id="admin-auth-gate" class="hidden min-h-screen flex items-center justify-center p-4"></div>
+
+  <div id="admin-main-content" class="hidden min-h-screen flex flex-col lg:flex-row">
+    <aside id="admin-sidebar" class="w-full lg:w-64 bg-brand-deep text-cream flex flex-col shrink-0"></aside>
+
+    <main class="flex-1 p-6 sm:p-8 lg:p-10 space-y-8 overflow-x-hidden">
+      <div class="border-b border-border pb-5 flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <p class="text-[11px] uppercase tracking-[0.18em] text-brand font-semibold">Catalog Management</p>
+          <h1 class="font-serif text-3xl font-semibold text-ink mt-1">Products</h1>
+        </div>
+        <button type="button" id="new-product-btn" class="btn-primary px-5 py-2.5 text-xs uppercase tracking-[0.14em] font-semibold">+ Add Product</button>
+      </div>
+
+      <!-- Product Editor Form -->
+      <form id="product-form" class="hidden border border-border bg-surface p-6 space-y-5">
+        <div class="flex items-center justify-between border-b border-border pb-3">
+          <h2 id="form-title" class="text-xs uppercase tracking-[0.16em] font-semibold text-ink">New Product</h2>
+          <button type="button" id="cancel-edit" class="text-xs text-muted hover:text-ink">Cancel</button>
+        </div>
+        <input type="hidden" id="p-id" />
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
+          <div>
+            <label class="block uppercase tracking-wider text-muted mb-1">Product Name</label>
+            <input id="p-name" type="text" required class="w-full border border-border bg-canvas px-3 py-2 text-sm" />
+          </div>
+          <div>
+            <label class="block uppercase tracking-wider text-muted mb-1">SKU</label>
+            <input id="p-sku" type="text" required class="w-full border border-border bg-canvas px-3 py-2 text-sm" />
+          </div>
+          <div>
+            <label class="block uppercase tracking-wider text-muted mb-1">Price (INR)</label>
+            <input id="p-price" type="number" min="0" required class="w-full border border-border bg-canvas px-3 py-2 text-sm" />
+          </div>
+          <div>
+            <label class="block uppercase tracking-wider text-muted mb-1">Compare At Price (Optional)</label>
+            <input id="p-compare" type="number" min="0" class="w-full border border-border bg-canvas px-3 py-2 text-sm" />
+          </div>
+          <div>
+            <label class="block uppercase tracking-wider text-muted mb-1">Category</label>
+            <input id="p-category" type="text" required placeholder="Oversized, Round Neck, Polo T-shirts" class="w-full border border-border bg-canvas px-3 py-2 text-sm" />
+          </div>
+          <div>
+            <label class="block uppercase tracking-wider text-muted mb-1">Collection</label>
+            <input id="p-collection" type="text" required placeholder="Faith Collection, Essentials" class="w-full border border-border bg-canvas px-3 py-2 text-sm" />
+          </div>
+          <div>
+            <label class="block uppercase tracking-wider text-muted mb-1">Material</label>
+            <input id="p-material" type="text" class="w-full border border-border bg-canvas px-3 py-2 text-sm" />
+          </div>
+          <div>
+            <label class="block uppercase tracking-wider text-muted mb-1">Fit</label>
+            <input id="p-fit" type="text" class="w-full border border-border bg-canvas px-3 py-2 text-sm" />
+          </div>
+          <div>
+            <label class="block uppercase tracking-wider text-muted mb-1">Sizes (comma separated)</label>
+            <input id="p-sizes" type="text" value="S, M, L, XL, XXL" class="w-full border border-border bg-canvas px-3 py-2 text-sm" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+          <div>
+            <label class="block uppercase tracking-wider text-muted mb-1">Description</label>
+            <textarea id="p-desc" rows="3" class="w-full border border-border bg-canvas px-3 py-2 text-sm"></textarea>
+          </div>
+          <div>
+            <label class="block uppercase tracking-wider text-muted mb-1">Variant Stock JSON (e.g. {"Black / S": 10, "Black / M": 8})</label>
+            <textarea id="p-stock" rows="3" class="w-full border border-border bg-canvas px-3 py-2 text-xs font-mono">{"Black / S": 10, "Black / M": 10, "Black / L": 8, "Black / XL": 5, "Black / XXL": 3}</textarea>
+          </div>
+        </div>
+
+        <!-- Cloudinary Images -->
+        <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 text-xs border-t border-border pt-4">
+          <div>
+            <label class="block uppercase tracking-wider text-muted mb-1">Front Image URL</label>
+            <input id="p-img-front" type="text" class="w-full border border-border bg-canvas px-3 py-2 text-xs mb-1.5" />
+            <input type="file" accept="image/*" data-upload-target="p-img-front" class="text-[11px]" />
+          </div>
+          <div>
+            <label class="block uppercase tracking-wider text-muted mb-1">Back Image URL</label>
+            <input id="p-img-back" type="text" class="w-full border border-border bg-canvas px-3 py-2 text-xs mb-1.5" />
+            <input type="file" accept="image/*" data-upload-target="p-img-back" class="text-[11px]" />
+          </div>
+          <div>
+            <label class="block uppercase tracking-wider text-muted mb-1">Lifestyle Image URL</label>
+            <input id="p-img-lifestyle" type="text" class="w-full border border-border bg-canvas px-3 py-2 text-xs mb-1.5" />
+            <input type="file" accept="image/*" data-upload-target="p-img-lifestyle" class="text-[11px]" />
+          </div>
+          <div>
+            <label class="block uppercase tracking-wider text-muted mb-1">Detail Image URL</label>
+            <input id="p-img-detail" type="text" class="w-full border border-border bg-canvas px-3 py-2 text-xs mb-1.5" />
+            <input type="file" accept="image/*" data-upload-target="p-img-detail" class="text-[11px]" />
+          </div>
+        </div>
+
+        <!-- Toggles -->
+        <div class="flex flex-wrap gap-6 text-xs pt-2">
+          <label class="inline-flex items-center gap-2"><input id="p-active" type="checkbox" checked /> Published (Active)</label>
+          <label class="inline-flex items-center gap-2"><input id="p-featured" type="checkbox" /> Featured</label>
+          <label class="inline-flex items-center gap-2"><input id="p-bestseller" type="checkbox" /> Best Seller</label>
+          <label class="inline-flex items-center gap-2"><input id="p-new" type="checkbox" checked /> New Arrival</label>
+        </div>
+
+        <button type="submit" class="btn-primary px-7 py-3 text-xs uppercase tracking-[0.14em] font-semibold">Save Product</button>
+      </form>
+
+      <!-- Products Table -->
+      <div id="admin-products-table" class="border border-border bg-surface overflow-x-auto"></div>
+    </main>
+  </div>
+
+  <script type="module">
+    import { mountAdminShell, requireAdminAccess } from '../assets/js/admin.js';
+    import { uploadImageToCloudinary } from '../assets/js/cloudinary.js';
+    import { getTotalStock } from '../assets/js/products.js';
+    import { escapeHTML, formatINR, slugify } from '../assets/js/utils.js';
+    import { showToast } from '../assets/js/ui.js';
+
+    mountAdminShell('products');
+
+    requireAdminAccess(async (fb) => {
+      const { collection, getDocs, doc, setDoc, deleteDoc, serverTimestamp } = fb.fsMod;
+      const form = document.getElementById('product-form');
+      const tableWrap = document.getElementById('admin-products-table');
+
+      async function loadProducts() {
+        const snap = await getDocs(collection(fb.db, 'products'));
+        const products = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        tableWrap.innerHTML = products.length
+          ? `<table class="w-full text-left text-xs">
+              <thead class="border-b border-border bg-canvas text-muted uppercase tracking-wider">
+                <tr><th class="p-3.5">Product</th><th class="p-3.5">SKU</th><th class="p-3.5">Price</th><th class="p-3.5">Stock</th><th class="p-3.5">Status</th><th class="p-3.5 text-right">Actions</th></tr>
+              </thead>
+              <tbody class="divide-y divide-border">
+                ${products
+                  .map(
+                    (p) => `
+                    <tr>
+                      <td class="p-3.5 font-medium text-ink">${escapeHTML(p.name)}</td>
+                      <td class="p-3.5 text-muted">${escapeHTML(p.sku || '—')}</td>
+                      <td class="p-3.5 font-semibold">${formatINR(p.price)}</td>
+                      <td class="p-3.5">${getTotalStock(p)}</td>
+                      <td class="p-3.5">${p.active !== false ? '<span class="text-brand font-medium">Published</span>' : '<span class="text-muted">Draft</span>'}</td>
+                      <td class="p-3.5 text-right space-x-3">
+                        <button type="button" data-edit="${escapeHTML(p.id)}" class="text-brand underline">Edit</button>
+                        <button type="button" data-del="${escapeHTML(p.id)}" class="text-crimson underline">Delete</button>
+                      </td>
+                    </tr>
+                  `
+                  )
+                  .join('')}
+              </tbody>
+            </table>`
+          : '<p class="p-8 text-sm text-muted text-center">No products in Firestore yet. Click “Add Product” to create one.</p>';
+
+        tableWrap.querySelectorAll('[data-edit]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const p = products.find((x) => x.id === btn.dataset.edit);
+            if (!p) return;
+            document.getElementById('form-title').textContent = 'Edit Product';
+            document.getElementById('p-id').value = p.id;
+            document.getElementById('p-name').value = p.name || '';
+            document.getElementById('p-sku').value = p.sku || '';
+            document.getElementById('p-price').value = p.price || '';
+            document.getElementById('p-compare').value = p.compareAtPrice || '';
+            document.getElementById('p-category').value = p.category || '';
+            document.getElementById('p-collection').value = p.collection || '';
+            document.getElementById('p-material').value = p.material || '';
+            document.getElementById('p-fit').value = p.fit || '';
+            document.getElementById('p-sizes').value = (p.sizes || []).join(', ');
+            document.getElementById('p-desc').value = p.description || '';
+            document.getElementById('p-stock').value = JSON.stringify(p.stock || {});
+            document.getElementById('p-img-front').value = p.images?.front || '';
+            document.getElementById('p-img-back').value = p.images?.back || '';
+            document.getElementById('p-img-lifestyle').value = p.images?.lifestyle || '';
+            document.getElementById('p-img-detail').value = p.images?.detail || '';
+            document.getElementById('p-active').checked = p.active !== false;
+            document.getElementById('p-featured').checked = Boolean(p.featured);
+            document.getElementById('p-bestseller').checked = Boolean(p.bestseller);
+            document.getElementById('p-new').checked = Boolean(p.newArrival);
+            form.classList.remove('hidden');
+            form.scrollIntoView({ behavior: 'smooth' });
+          });
+        });
+
+        tableWrap.querySelectorAll('[data-del]').forEach((btn) => {
+          btn.addEventListener('click', async () => {
+            if (!confirm('Delete this product?')) return;
+            await deleteDoc(doc(fb.db, 'products', btn.dataset.del));
+            showToast('Product deleted');
+            loadProducts();
+          });
+        });
+      }
+
+      document.getElementById('new-product-btn')?.addEventListener('click', () => {
+        form.reset();
+        document.getElementById('p-id').value = '';
+        document.getElementById('form-title').textContent = 'New Product';
+        form.classList.remove('hidden');
+      });
+      document.getElementById('cancel-edit')?.addEventListener('click', () => form.classList.add('hidden'));
+
+      document.querySelectorAll('[data-upload-target]').forEach((input) => {
+        input.addEventListener('change', async (e) => {
+          const file = e.target.files?.[0];
+          if (!file) return;
+          try {
+            showToast('Uploading image to Cloudinary...');
+            const res = await uploadImageToCloudinary(file);
+            document.getElementById(input.dataset.uploadTarget).value = res.url;
+            showToast('Image uploaded', { type: 'success' });
+          } catch (err) {
+            showToast(err.message || 'Upload failed', { type: 'error' });
+          }
+        });
+      });
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const name = document.getElementById('p-name').value.trim();
+        const id = document.getElementById('p-id').value || slugify(name);
+        let parsedStock = {};
+        try {
+          parsedStock = JSON.parse(document.getElementById('p-stock').value || '{}');
+        } catch {
+          return showToast('Invalid Stock JSON format', { type: 'error' });
+        }
+
+        const payload = {
+          name,
+          slug: slugify(name),
+          sku: document.getElementById('p-sku').value.trim(),
+          price: Number(document.getElementById('p-price').value),
+          compareAtPrice: document.getElementById('p-compare').value ? Number(document.getElementById('p-compare').value) : null,
+          category: document.getElementById('p-category').value.trim(),
+          collection: document.getElementById('p-collection').value.trim(),
+          material: document.getElementById('p-material').value.trim(),
+          fit: document.getElementById('p-fit').value.trim(),
+          sizes: document.getElementById('p-sizes').value.split(',').map((s) => s.trim()).filter(Boolean),
+          description: document.getElementById('p-desc').value.trim(),
+          stock: parsedStock,
+          images: {
+            front: document.getElementById('p-img-front').value.trim(),
+            back: document.getElementById('p-img-back').value.trim(),
+            lifestyle: document.getElementById('p-img-lifestyle').value.trim(),
+            detail: document.getElementById('p-img-detail').value.trim(),
+          },
+          thumbnail: document.getElementById('p-img-front').value.trim(),
+          active: document.getElementById('p-active').checked,
+          featured: document.getElementById('p-featured').checked,
+          bestseller: document.getElementById('p-bestseller').checked,
+          newArrival: document.getElementById('p-new').checked,
+          updatedAt: serverTimestamp(),
+        };
+
+        if (!document.getElementById('p-id').value) {
+          payload.createdAt = serverTimestamp();
+        }
+
+        await setDoc(doc(fb.db, 'products', id), payload, { merge: true });
+        form.classList.add('hidden');
+        showToast('Product saved', { type: 'success' });
+        loadProducts();
+      });
+
+      loadProducts();
+    });
+  </script>
+</body>
+</html>
